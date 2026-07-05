@@ -10,7 +10,7 @@ _Scaffolding, domain model, and persistence. Everything downstream depends on th
 | # | Issue | Notes |
 |---|-------|-------|
 | ~~[#1](https://github.com/ZhannaM85/life-kaleidoscope/issues/1)~~ | ~~Epic 0 — Project scaffolding & tooling~~ | Done ✓ — commit `ceacb8a`; issue still open on GitHub |
-| [#2](https://github.com/ZhannaM85/life-kaleidoscope/issues/2) | Epic 1 — Domain model & persistence layer | Entities from §4, repository interfaces in `domain/`, Dexie implementations, versioning logic. **Pause after this — Phase 1 checkpoint** |
+| ~~[#2](https://github.com/ZhannaM85/life-kaleidoscope/issues/2)~~ | ~~Epic 1 — Domain model & persistence layer~~ | Done ✓ — commits `287a26a`, `2203d61`; 20 unit tests; Phase 1 checkpoint summary delivered |
 
 ---
 
