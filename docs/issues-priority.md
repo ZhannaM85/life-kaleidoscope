@@ -30,7 +30,7 @@ _Prompt → write → save → appears in the memories list. Proves the whole st
 
 | # | Issue | Notes |
 |---|-------|-------|
-| [#4](https://github.com/ZhannaM85/life-kaleidoscope/issues/4) | Epic 3 — Daily Prompt | Prompt selection logic (no repeats within window), Today screen |
+| ~~[#4](https://github.com/ZhannaM85/life-kaleidoscope/issues/4)~~ | ~~Epic 3 — Daily Prompt~~ | Done ✓ — commits `f032c2a`, `435de35`; slice verified in browser; StrictMode double-prompt race found & fixed during verification |
 
 ---
 

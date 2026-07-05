@@ -122,19 +122,23 @@ Pure TypeScript. Unit-testable with no DOM. If a file here ever needs `react`, `
 | `MemoryRepository` | `create`/`update` take `MemoryWithVersion` and must persist memory + version atomically; `getById`, `getAll` (newest first), `getByPromptId` (annual reflection), `getVersions` (oldest first), `delete` (memory + entire history — distinct from editing). |
 | `PhotoRepository` | `save(photo, blob)` atomically, `getById`, `getByMemoryId`, `getBlob(blobRef)`, `delete` (removes metadata + blob together). |
 
-#### `src/domain/prompt/` (`prompt.ts`, `repository.ts`)
+#### `src/domain/prompt/` (`prompt.ts`, `repository.ts`, `words.ts`, `daily-prompt.ts`)
 **Why it exists:** The daily single-word cue is its own aggregate — prompts are issued over time and the same word can recur (that recurrence powers Epic 9's annual reflection).
 
 | Export | Purpose |
 |--------|---------|
 | `Prompt` | `{ id, word, createdAt }`. |
 | `PromptRepository` | `save`, `getById`, `getAll` (oldest first), `getByWord` — every issuance of a word, for the reflection callback. |
+| `WORD_POOL` (added in #4) | ~200 curated single words — concrete, sensory nouns ("Bicycle", "Kitchen"), not abstractions. Data only. |
+| `localDateKey(date)` (added in #4) | Local `YYYY-MM-DD` — the boundary for "today's" prompt. Local time on purpose: a memory written at 23:50 belongs to that evening. |
+| `chooseDailyWord(args)` (added in #4) | Pure selection: FNV-1a hash of the date key indexes into the words not used within the no-repeat window (default 120 days), so a reload never reshuffles today's word. If every word is inside the window (tiny custom pools), falls back to the least-recently-used word instead of failing. |
+| `getOrCreateTodaysPrompt(repo, deps)` (added in #4) | Idempotent per local day: returns today's existing prompt or chooses, persists, and returns a new one. Injected `generateId`/`now` keep it testable. |
 
 #### `src/domain/person/index.ts` · `src/domain/place/index.ts` · `src/domain/tag/index.ts`
 **Why they exist:** First-class graph nodes from day one (per the brief, retrofitting stable ids later is expensive). Each file holds the entity plus its repository interface: `save`, `getById`, `getAll`, `delete`.
 
 #### `src/domain/user/index.ts`
-**Why it exists:** `UserProfile` for the single MVP user. `legacyContact` is a reserved schema field only — no succession/sharing logic is built around it (deliberate; see brief §4). `UserProfileRepository` is `get()`/`save()` — singleton semantics, no id lookup needed.
+**Why it exists:** `UserProfile` for the single MVP user. `legacyContact` is a reserved schema field only — no succession/sharing logic is built around it (deliberate; see brief §4). `UserProfileRepository` is `get()`/`save()` — singleton semantics, no id lookup needed. `ensureUserProfile()` (added in #4) silently creates the default profile on first save — the MVP never asks the user to sign up; the profile exists only so memories have an `authoredBy` id.
 
 ---
 
@@ -176,6 +180,29 @@ Key decision: `update()` inserts the version with Dexie's `add` (not `put`) insi
 | `Repositories` | Interface bundling all seven repository interfaces — what the app "sees". |
 | `createIndexedDbRepositories(dbName?)` | Builds one `LifeKaleidoscopeDb` and wires all seven implementations around it. A future remote backend replaces this one factory. |
 | Class re-exports | Individual repositories, mainly for tests. |
+
+---
+
+### State layer (`src/stores/`) — added in #4
+
+Zustand owns UI/session state only; persisted data always flows through the domain repository interfaces.
+
+| File | Purpose |
+|------|---------|
+| `repositories.ts` | The app-wide persistence handle: lazy `getRepositories()` returning the `Repositories` bundle (IndexedDB-backed today), plus `setRepositories()` as the test seam. The one place that picks an implementation. |
+| `daily-prompt-store.ts` | Today's prompt, the in-progress draft, today's saved memories, and `load`/`setDraft`/`save` actions. `load()` guards against concurrent invocation (React StrictMode double-runs effects in dev — without the guard, two racing `getOrCreateTodaysPrompt` calls each created a prompt; found by browser verification, not by tests). It also collects memories across **all** of today's prompts, healing any duplicate same-day prompt data. `save()` runs `ensureUserProfile` → `createMemory` → `MemoryRepository.create`. |
+| `memories-store.ts` | All memories (newest first) plus a `promptsById` lookup so the list can show each memory's word. |
+
+---
+
+### Features (`src/features/`)
+
+| File | Purpose |
+|------|---------|
+| `daily-prompt/TodayPage.tsx` (real since #4) | The heart of the app: date + today's word large and centered, a serif textarea ("A memory this word brings back"), and a single "Keep this memory" button (disabled while empty/saving — no error states for an empty page, per the no-guilt stance). Saved entries are echoed below with a link to the full list; writing more than once a day is allowed and unceremonious. |
+| `memory-entry/MemoriesPage.tsx` (real since #4) | Newest-first cards — word, written-on date, three-line story excerpt — each linking to `/memories/:id` (detail is Epic 4). Calm `EmptyState` pointing back to today's word when nothing exists. |
+| `daily-prompt/vertical-slice.test.tsx` | The end-to-end slice as a test: word appears → type → save → echoed on Today → listed on Memories, against real stores + fake-indexeddb. Also regression tests for the StrictMode double-load race and the duplicate-prompt healing path. |
+| Other `…Page.tsx` files | Still placeholders for their epics. |
 
 ---
 
@@ -229,7 +256,9 @@ shadcn-style primitives, hand-written (new-york style, React 19 ref-as-prop, no 
 | `src/shared/ui/shared-ui.test.tsx` | Added in #3. Primitives via RTL: click/disabled `Button`, label association + error ARIA on `TextField`/`Textarea`, file selection through `PhotoUpload`, `EmptyState`/`PageHeader` render. |
 | `src/app/AppShell.test.tsx` | Added in #3/#14. Shell renders title + outlet; every route present in both desktop nav and mobile tab bar. |
 
-Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 31 tests as of Epic 2.
+| `src/domain/prompt/daily-prompt.test.ts` | Added in #4. Determinism per date, window exclusion, LRU fallback, per-day idempotency, pool-vs-window sanity, timezone-safe date keys. |
+
+Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 45 tests as of Epic 3.
 
 **Browser verification:** `playwright-core` (dev dependency, added with #3) drives the built app in the system's Edge/Chrome (`channel:` launch — no browser binaries downloaded). Used for per-epic runtime verification: viewport checks at 390×844 and 1280×800, favicon/response checks, screenshots.
 
@@ -256,9 +285,9 @@ flowchart LR
         E2["#3 Epic 2 — Design system & shell"]
         B14["#14 Mobile nav bug"]
         B15["#15 Favicon"]
+        E3["#4 Epic 3 — Daily Prompt slice"]
     end
     subgraph Next ["⏭ Next"]
-        E3["#4 Epic 3 — Daily Prompt (Tier 3)"]
         DS["#17 → #11 → #16 Data safety (Tier 4)"]
     end
     Done --> Next
