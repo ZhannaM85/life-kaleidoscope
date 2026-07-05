@@ -181,14 +181,31 @@ Key decision: `update()` inserts the version with Dexie's `add` (not `put`) insi
 
 ### App shell & routing (`src/app/`, `src/App.tsx`)
 
-Scaffold-level placeholders from Epic 0 — real design system and screens arrive with Epics 2+.
-
 | File | Purpose |
 |------|---------|
 | `src/App.tsx` | `createBrowserRouter` with all eight routes from brief §6 (`/`, `/memories`, `/memories/:id`, `/memories/:id/edit`, `/search`, `/graph`, `/export`, `/settings`) nested under `AppShell`. |
-| `src/app/AppShell.tsx` | Header (title + `NavLink` nav) and `<main>` outlet, max-width 3xl. **Known bug #14:** the single-row nav is unusable at phone widths — to be fixed with Epic 2. |
-| `src/shared/ui/PlaceholderPage.tsx` | Temporary heading + description used by all placeholder screens. |
+| `src/app/AppShell.tsx` | Responsive shell (reworked in #3/#14). Desktop (`sm+`): header with title + horizontal text nav. Phones: header shows the title only; navigation moves to a **fixed bottom tab bar** — six icon+label tabs (lucide icons), each ≥56px tall, `env(safe-area-inset-bottom)` padding, `main` gets `pb-28` so content clears the bar. Only one nav is in the accessibility tree at a time (the other is `display:none`). Verified at 390×844: no overflow, no clipping. |
 | `src/features/*/…Page.tsx`, `src/app/SettingsPage.tsx` | One placeholder screen per route, in their future feature homes. |
+
+`index.html` (updated in #15): title "Life Kaleidoscope", `theme-color` matching the paper background, and `public/favicon.svg` — a hand-drawn quiet notebook mark (ivory page, clay margin line, three trailing ink lines). Deliberately not literal kaleidoscope imagery (brief §2). The leftover bolt-logo `favicon.svg`/`icons.svg` from scaffolding were replaced/removed.
+
+---
+
+### Design system (`src/shared/ui/`) — added in #3
+
+shadcn-style primitives, hand-written (new-york style, React 19 ref-as-prop, no `forwardRef`). Default button/input height is 44px — tap-target minimum as a design-system default rather than a per-screen fix. Prose inherits the serif body font; UI chrome (labels, buttons, nav) uses `font-sans`.
+
+| File | Exports | Notes |
+|------|---------|-------|
+| `button.tsx` | `Button`, `buttonVariants` | cva variants: `default/secondary/outline/ghost/destructive`, sizes `sm/default/lg/icon`. Defaults to `type="button"`. |
+| `card.tsx` | `Card` + `Header/Title/Description/Content/Footer` | Standard shadcn card family on the paper palette. |
+| `text-field.tsx` | `TextField` | Labeled input with `hint`/`error`; wires `aria-invalid` + `aria-describedby`. Ids from `useId`. |
+| `textarea.tsx` | `Textarea` | Same labeled-field pattern, serif prose area for memory writing. |
+| `photo-upload.tsx` | `PhotoUpload` | Dashed drop-well `<label>` wrapping an `sr-only` native file input — keyboard/SR users get the real control. Resets after each pick; `onSelect(File[])`. |
+| `empty-state.tsx` | `EmptyState` | Calm empty screen (icon/title/description/action) — deliberately no guilt copy. |
+| `page-header.tsx` | `PageHeader` | `h1` + description + right-aligned action slot. |
+| `PlaceholderPage.tsx` | `PlaceholderPage` | Now a thin wrapper over `EmptyState`. |
+| `index.ts` | Barrel for all of the above. | |
 
 ---
 
@@ -197,6 +214,8 @@ Scaffold-level placeholders from Epic 0 — real design system and screens arriv
 | File | Purpose |
 |------|---------|
 | `lib/utils.ts` | `cn()` — `clsx` + `tailwind-merge`, the standard shadcn class-merging helper. |
+
+`src/index.css` holds the theme: warm paper palette (oklch ivory/ink CSS variables mapped to Tailwind v4 `@theme inline` tokens, from Epic 0) plus, added in #3, `--font-serif` (Charter/Sitka/Cambria/Georgia stack — body default) and `--font-sans` (warm system sans for UI chrome). System stacks only — no webfont downloads, consistent with privacy-first.
 
 ---
 
@@ -207,8 +226,12 @@ Scaffold-level placeholders from Epic 0 — real design system and screens arriv
 | `src/domain/memory/versioning.test.ts` | Pure versioning logic: initial version on create, snapshot shape (no `currentVersionId`), defaults, no-mutation guarantee, edit chains, optional dates. |
 | `src/infrastructure/persistence/indexeddb/repositories.test.ts` | All repositories against `fake-indexeddb`: round-trips, version append + tamper rejection, delete-with-history, prompt lookup by word, photo blob round-trip, singleton profile. Fresh db per test. |
 | `src/shared/lib/utils.test.ts` | `cn()` behaviour. |
+| `src/shared/ui/shared-ui.test.tsx` | Added in #3. Primitives via RTL: click/disabled `Button`, label association + error ARIA on `TextField`/`Textarea`, file selection through `PhotoUpload`, `EmptyState`/`PageHeader` render. |
+| `src/app/AppShell.test.tsx` | Added in #3/#14. Shell renders title + outlet; every route present in both desktop nav and mobile tab bar. |
 
-Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 20 tests as of Epic 1.
+Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 31 tests as of Epic 2.
+
+**Browser verification:** `playwright-core` (dev dependency, added with #3) drives the built app in the system's Edge/Chrome (`channel:` launch — no browser binaries downloaded). Used for per-epic runtime verification: viewport checks at 390×844 and 1280×800, favicon/response checks, screenshots.
 
 ---
 
@@ -217,7 +240,7 @@ Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 20 tests as of E
 | Piece | Notes |
 |-------|-------|
 | Vite 8 + React 19 + TS strict | `verbatimModuleSyntax` and `erasableSyntaxOnly` are on — use `import type`, no constructor parameter properties or enums. |
-| Tailwind CSS v4 (`@tailwindcss/vite`) | Theme tokens land with Epic 2. |
+| Tailwind CSS v4 (`@tailwindcss/vite`) | Theme tokens in `src/index.css` (`@theme` / `@theme inline`). |
 | Path alias | `@/ → src/` (vite.config.ts, vitest.config.ts, tsconfig.app.json). |
 | Scripts | `dev`, `build` (tsc + vite), `test` / `test:watch` / `test:coverage`, `lint` (oxlint), `format` (prettier), `type-check`. |
 
@@ -230,11 +253,13 @@ flowchart LR
     subgraph Done ["✅ Done"]
         E0["#1 Epic 0 — Scaffold & tooling"]
         E1["#2 Epic 1 — Domain model & persistence"]
-    end
-    subgraph Next ["⏭ Next (Tier 2)"]
         E2["#3 Epic 2 — Design system & shell"]
         B14["#14 Mobile nav bug"]
         B15["#15 Favicon"]
+    end
+    subgraph Next ["⏭ Next"]
+        E3["#4 Epic 3 — Daily Prompt (Tier 3)"]
+        DS["#17 → #11 → #16 Data safety (Tier 4)"]
     end
     Done --> Next
 ```

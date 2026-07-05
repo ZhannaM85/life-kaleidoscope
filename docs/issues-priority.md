@@ -19,9 +19,9 @@ _Shared primitives and routing skeleton before any real feature screen._
 
 | # | Issue | Notes |
 |---|-------|-------|
-| [#3](https://github.com/ZhannaM85/life-kaleidoscope/issues/3) | Epic 2 — Design system & shared UI | Theme tokens (§8), shared primitives, app shell + routing skeleton (§6) |
-| [#14](https://github.com/ZhannaM85/life-kaleidoscope/issues/14) | bug: header nav unusable at mobile widths | Collapse nav below a breakpoint (menu button or bottom tab bar); fix with #3 — don't defer to #12 |
-| [#15](https://github.com/ZhannaM85/life-kaleidoscope/issues/15) | chore: replace default Vite favicon | Generate a calm, notebook-style favicon (no literal kaleidoscope imagery); land with #3's visual identity work |
+| ~~[#3](https://github.com/ZhannaM85/life-kaleidoscope/issues/3)~~ | ~~Epic 2 — Design system & shared UI~~ | Done ✓ — commits `3aa1feb`…`4ebeba7`; 7 primitives, serif typography, 31 tests |
+| ~~[#14](https://github.com/ZhannaM85/life-kaleidoscope/issues/14)~~ | ~~bug: header nav unusable at mobile widths~~ | Done ✓ — mobile bottom tab bar, verified at 390×844 in headless Edge (commit `7a9e89c`) |
+| ~~[#15](https://github.com/ZhannaM85/life-kaleidoscope/issues/15)~~ | ~~chore: replace default Vite favicon~~ | Done ✓ — hand-drawn notebook-mark SVG (commit `3aa1feb`) |
 
 ---
 
