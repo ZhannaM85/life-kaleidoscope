@@ -22,6 +22,7 @@ _Shared primitives and routing skeleton before any real feature screen._
 | ~~[#3](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/3)~~ | ~~Epic 2 — Design system & shared UI~~ | Done ✓ — commits `3aa1feb`…`4ebeba7`; 7 primitives, serif typography, 31 tests |
 | ~~[#14](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/14)~~ | ~~bug: header nav unusable at mobile widths~~ | Done ✓ — mobile bottom tab bar, verified at 390×844 in headless Edge (commit `7a9e89c`) |
 | ~~[#15](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/15)~~ | ~~chore: replace default Vite favicon~~ | Done ✓ — hand-drawn notebook-mark SVG (commit `3aa1feb`) |
+| ~~[#23](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/23)~~ | ~~feat: proper not-found page for unknown routes~~ | Done ✓ — catch-all route inside the shell, `EmptyState` + link back to Today; found during Pages deploy verification (#21) |
 
 ---
 

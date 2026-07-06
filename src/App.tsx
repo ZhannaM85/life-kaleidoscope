@@ -8,6 +8,7 @@ import { SearchPage } from '@/features/search/SearchPage'
 import { GraphPage } from '@/features/memory-graph/GraphPage'
 import { ExportPage } from '@/features/export/ExportPage'
 import { SettingsPage } from '@/app/SettingsPage'
+import { NotFoundPage } from '@/app/NotFoundPage'
 
 const router = createBrowserRouter(
   [
@@ -23,6 +24,7 @@ const router = createBrowserRouter(
         { path: 'graph', element: <GraphPage /> },
         { path: 'export', element: <ExportPage /> },
         { path: 'settings', element: <SettingsPage /> },
+        { path: '*', element: <NotFoundPage /> },
       ],
     },
   ],
