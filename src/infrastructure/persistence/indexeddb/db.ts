@@ -29,10 +29,7 @@ export class LifeLikeKaleidoscopeDb extends Dexie {
   photoBlobs!: Table<PhotoBlobRow, string>
   userProfiles!: Table<UserProfile, string>
 
-  // The persisted database name predates the rename to "Life Like Kaleidoscope"
-  // and must stay 'life-kaleidoscope': changing it would open a fresh empty
-  // database and orphan every existing user's data.
-  constructor(name = 'life-kaleidoscope') {
+  constructor(name = 'life-like-kaleidoscope') {
     super(name)
     this.version(1).stores({
       prompts: 'id, word, createdAt',
