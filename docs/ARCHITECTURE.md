@@ -142,9 +142,20 @@ Pure TypeScript. Unit-testable with no DOM. If a file here ever needs `react`, `
 
 ---
 
-### Persistence layer (`src/infrastructure/persistence/indexeddb/`)
+### Persistence layer (`src/infrastructure/persistence/`)
 
-The only folder allowed to import Dexie.
+`indexeddb/` is the only folder allowed to import Dexie.
+
+#### `storage-persistence.ts` — added in #17
+**Why it exists:** IndexedDB is "best-effort" storage by default — browsers may evict it under storage pressure without the user doing anything, which is unacceptable for a decades-long archive. This module wraps `navigator.storage` so the rest of the app never touches the raw API.
+
+| Export | Purpose |
+|--------|---------|
+| `requestPersistentStorage()` | `navigator.storage.persist()` — asks the browser to protect the origin's storage from eviction. Idempotent; called fire-and-forget in `main.tsx` on every app start. |
+| `getStorageStatus()` | `persisted()` + `estimate()` → `StorageStatus` for the Settings screen. |
+| `StorageStatus` | `{ persisted, usage, quota }`, each `null` when the browser won't say. |
+
+Everything is best-effort and never throws (the API is absent in non-secure contexts and some browsers). This covers silent eviction only — the user explicitly clearing site data is what export (#11) + import (#16) are for.
 
 #### `db.ts`
 **Why it exists:** Single definition of the IndexedDB schema.
@@ -212,7 +223,9 @@ Zustand owns UI/session state only; persisted data always flows through the doma
 |------|---------|
 | `src/App.tsx` | `createBrowserRouter` with all eight routes from brief §6 (`/`, `/memories`, `/memories/:id`, `/memories/:id/edit`, `/search`, `/graph`, `/export`, `/settings`) nested under `AppShell`. |
 | `src/app/AppShell.tsx` | Responsive shell (reworked in #3/#14). Desktop (`sm+`): header with title + horizontal text nav. Phones: header shows the title only; navigation moves to a **fixed bottom tab bar** — six icon+label tabs (lucide icons), each ≥56px tall, `env(safe-area-inset-bottom)` padding, `main` gets `pb-28` so content clears the bar. Only one nav is in the accessibility tree at a time (the other is `display:none`). Verified at 390×844: no overflow, no clipping. |
-| `src/features/*/…Page.tsx`, `src/app/SettingsPage.tsx` | One placeholder screen per route, in their future feature homes. |
+| `src/main.tsx` | Entry point. Calls `requestPersistentStorage()` fire-and-forget before render (added in #17) so the browser can protect IndexedDB from silent eviction. |
+| `src/app/SettingsPage.tsx` (real since #17) | "Your data" card: storage protection status + space used from `getStorageStatus()`, in a calm, informational tone (no alarm styling). When persistence is not granted, a dismissible "gentle suggestion" card points at the Export page for occasional backups — dismissal remembered in `localStorage`, no nagging. |
+| `src/features/*/…Page.tsx` | One placeholder screen per remaining route, in their future feature homes. |
 
 `index.html` (updated in #15): title "Life Kaleidoscope", `theme-color` matching the paper background, and `public/favicon.svg` — a hand-drawn quiet notebook mark (ivory page, clay margin line, three trailing ink lines). Deliberately not literal kaleidoscope imagery (brief §2). The leftover bolt-logo `favicon.svg`/`icons.svg` from scaffolding were replaced/removed.
 
@@ -257,8 +270,10 @@ shadcn-style primitives, hand-written (new-york style, React 19 ref-as-prop, no 
 | `src/app/AppShell.test.tsx` | Added in #3/#14. Shell renders title + outlet; every route present in both desktop nav and mobile tab bar. |
 
 | `src/domain/prompt/daily-prompt.test.ts` | Added in #4. Determinism per date, window exclusion, LRU fallback, per-day idempotency, pool-vs-window sanity, timezone-safe date keys. |
+| `src/infrastructure/persistence/storage-persistence.test.ts` | Added in #17. Stubs `navigator.storage`: persist grant/deny, all-null status when the API is missing, rejection tolerance. |
+| `src/app/SettingsPage.test.tsx` | Added in #17. Status rendering per persistence state, suggestion only when not granted, dismissal sticks across visits. |
 
-Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 45 tests as of Epic 3.
+Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 56 tests as of #17.
 
 **Browser verification:** `playwright-core` (dev dependency, added with #3) drives the built app in the system's Edge/Chrome (`channel:` launch — no browser binaries downloaded). Used for per-epic runtime verification: viewport checks at 390×844 and 1280×800, favicon/response checks, screenshots.
 
@@ -286,9 +301,10 @@ flowchart LR
         B14["#14 Mobile nav bug"]
         B15["#15 Favicon"]
         E3["#4 Epic 3 — Daily Prompt slice"]
+        PS["#17 Persistent storage + Settings status"]
     end
     subgraph Next ["⏭ Next"]
-        DS["#17 → #11 → #16 Data safety (Tier 4)"]
+        DS["#11 → #16 Export & import (Tier 4)"]
     end
     Done --> Next
 ```

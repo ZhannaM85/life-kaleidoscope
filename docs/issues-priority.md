@@ -39,7 +39,7 @@ _Pulled up from the end of the queue: once real writing exists (Tier 3), users n
 
 | # | Issue | Notes |
 |---|-------|-------|
-| [#17](https://github.com/ZhannaM85/life-kaleidoscope/issues/17) | feat: persistent storage request + storage status | `navigator.storage.persist()` — tiny; eliminates silent eviction. Can land even earlier if convenient |
+| ~~[#17](https://github.com/ZhannaM85/life-kaleidoscope/issues/17)~~ | ~~feat: persistent storage request + storage status~~ | Done ✓ — `persist()` on bootstrap, storage status + dismissible backup suggestion on Settings |
 | [#11](https://github.com/ZhannaM85/life-kaleidoscope/issues/11) | Epic 11 — Export | **JSON first** (it's the backup format), Markdown next; PDF can trail into Tier 5 |
 | [#16](https://github.com/ZhannaM85/life-kaleidoscope/issues/16) | feat: JSON backup import/restore | Round-trips #11's JSON format incl. version histories and photos; depends on #11 |
 
