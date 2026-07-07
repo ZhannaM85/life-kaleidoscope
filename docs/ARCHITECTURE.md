@@ -140,6 +140,19 @@ Pure TypeScript. Unit-testable with no DOM. If a file here ever needs `react`, `
 #### `src/domain/user/index.ts`
 **Why it exists:** `UserProfile` for the single MVP user. `legacyContact` is a reserved schema field only — no succession/sharing logic is built around it (deliberate; see brief §4). `UserProfileRepository` is `get()`/`save()` — singleton semantics, no id lookup needed. `ensureUserProfile()` (added in #4) silently creates the default profile on first save — the MVP never asks the user to sign up; the profile exists only so memories have an `authoredBy` id.
 
+#### `src/domain/export/` (`backup.ts`, `facts.ts`, `markdown.ts`, `print-html.ts`) — added in #11
+**Why it exists:** Export is serialization of domain data into open formats — pure TS over the repository interfaces (same pattern as `getOrCreateTodaysPrompt`), so the formats are unit-testable without a browser and reusable by import (#16).
+
+| Export | Purpose |
+|--------|---------|
+| `BackupFile` / `BACKUP_SCHEMA_VERSION` | The lossless JSON backup shape: user profile, prompts, memories, **full version histories**, people, places, tags, and photos with their bytes inline (base64) — one self-contained file. `schemaVersion` (currently 1) is what import (#16) will check. |
+| `BackupSources` | The seven repository interfaces export reads from — structurally satisfied by the app's `Repositories` bundle, but declared in domain so the layer boundary holds. |
+| `collectBackup(sources, deps)` | Walks all repositories (versions via `getVersions` per memory, photo bytes via `getBlob`) into one `BackupFile`. Injected `now` keeps `exportedAt` deterministic in tests. A missing photo blob becomes `content: null` rather than failing the whole export. |
+| `serializeBackup(backup)` | Pretty-printed JSON — the backup stays human-inspectable. |
+| `backupToMarkdown(backup)` | One readable document, **oldest memory first** (a life reads forward): `## word — YYYY-MM-DD` headings, story verbatim (the author's own text is not escaped), detail bullets (When/People/Places/Tags) only where present. Dates use `localDateKey` — locale-free on purpose. |
+| `backupToPrintHtml(backup)` | Self-contained printable HTML (inline serif styling, `break-inside: avoid` per memory, story text HTML-escaped). "Export to PDF" is the browser's print dialog over this document — no PDF library dependency. |
+| `facts.ts` (internal) | Shared shaping for the two human-readable formats: resolves prompt words and people/place/tag names, orders memories, builds the detail lines — so Markdown and print/PDF can never disagree about what a memory says. |
+
 ---
 
 ### Persistence layer (`src/infrastructure/persistence/`)
@@ -213,6 +226,8 @@ Zustand owns UI/session state only; persisted data always flows through the doma
 | `daily-prompt/TodayPage.tsx` (real since #4) | The heart of the app: date + today's word large and centered, a serif textarea ("A memory this word brings back"), and a single "Keep this memory" button (disabled while empty/saving — no error states for an empty page, per the no-guilt stance). Saved entries are echoed below with a link to the full list; writing more than once a day is allowed and unceremonious. |
 | `memory-entry/MemoriesPage.tsx` (real since #4) | Newest-first cards — word, written-on date, three-line story excerpt — each linking to `/memories/:id` (detail is Epic 4). Calm `EmptyState` pointing back to today's word when nothing exists. |
 | `daily-prompt/vertical-slice.test.tsx` | The end-to-end slice as a test: word appears → type → save → echoed on Today → listed on Memories, against real stores + fake-indexeddb. Also regression tests for the StrictMode double-load race and the duplicate-prompt healing path. |
+| `export/ExportPage.tsx` (real since #11) | Three calm cards — JSON backup (the lossless restore file), Markdown (readable, oldest first), PDF (opens the browser print dialog on the printable document; "Save as PDF" lives there). Collects a fresh `BackupFile` on each click via `getRepositories()`; per-format busy labels, a `role="alert"` message on failure or when a popup blocker eats the print window. No store — export is a one-shot action with no session state worth keeping. |
+| `export/download.ts` | The browser-only delivery half, deliberately outside `domain/`: `downloadTextFile` (object URL + anchor click) and `openPrintDialog` (`window.open` → write → `print()`, returning `false` when popup-blocked so the page can explain). |
 | Other `…Page.tsx` files | Still placeholders for their epics. |
 
 ---
@@ -273,8 +288,10 @@ shadcn-style primitives, hand-written (new-york style, React 19 ref-as-prop, no 
 | `src/domain/prompt/daily-prompt.test.ts` | Added in #4. Determinism per date, window exclusion, LRU fallback, per-day idempotency, pool-vs-window sanity, timezone-safe date keys. |
 | `src/infrastructure/persistence/storage-persistence.test.ts` | Added in #17. Stubs `navigator.storage`: persist grant/deny, all-null status when the API is missing, rejection tolerance. |
 | `src/app/SettingsPage.test.tsx` | Added in #17. Status rendering per persistence state, suggestion only when not granted, dismissal sticks across visits. |
+| `src/domain/export/export.test.ts` | Added in #11. Pure, against hand-rolled in-memory `BackupSources`: backup completeness incl. version histories, `null` (not dropped-key `undefined`) profile, photo-bytes base64 round-trip + missing-blob tolerance, JSON serialize/parse identity, Markdown ordering/headings/detail lines, HTML escaping and paragraph preservation. |
+| `src/features/export/ExportPage.test.tsx` | Added in #11. The page against real repositories + fake-indexeddb, with `URL.createObjectURL`/anchor-click stubbed (jsdom has neither): JSON download parses back to the saved memory + version, Markdown contains the word heading, PDF path writes the document and calls `print()`, popup-blocked path shows the alert. |
 
-Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 56 tests as of #17.
+Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 71 tests as of #11.
 
 **Browser verification:** `playwright-core` (dev dependency, added with #3) drives the built app in the system's Edge/Chrome (`channel:` launch — no browser binaries downloaded). Used for per-epic runtime verification: viewport checks at 390×844 and 1280×800, favicon/response checks, screenshots.
 
@@ -303,9 +320,10 @@ flowchart LR
         B15["#15 Favicon"]
         E3["#4 Epic 3 — Daily Prompt slice"]
         PS["#17 Persistent storage + Settings status"]
+        EX["#11 Epic 11 — Export (JSON / Markdown / print-to-PDF)"]
     end
     subgraph Next ["⏭ Next"]
-        DS["#11 → #16 Export & import (Tier 4)"]
+        DS["#16 JSON backup import/restore (Tier 4)"]
     end
     Done --> Next
 ```
