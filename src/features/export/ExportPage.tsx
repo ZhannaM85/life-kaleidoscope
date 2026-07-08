@@ -13,6 +13,7 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { downloadTextFile, openPrintDialog } from './download'
+import { ImportBackupCard } from './ImportBackupCard'
 
 type ExportFormat = 'json' | 'markdown' | 'pdf'
 
@@ -68,7 +69,7 @@ export function ExportPage() {
             </CardTitle>
             <CardDescription>
               Everything, losslessly — every memory, its full version history, people, places, tags,
-              and photos in one file. This is the file a future restore reads.
+              and photos in one file. This is the file the restore below reads.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -120,6 +121,8 @@ export function ExportPage() {
             </Button>
           </CardContent>
         </Card>
+
+        <ImportBackupCard />
       </div>
     </div>
   )

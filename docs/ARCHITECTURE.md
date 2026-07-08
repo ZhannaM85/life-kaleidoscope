@@ -140,18 +140,23 @@ Pure TypeScript. Unit-testable with no DOM. If a file here ever needs `react`, `
 #### `src/domain/user/index.ts`
 **Why it exists:** `UserProfile` for the single MVP user. `legacyContact` is a reserved schema field only — no succession/sharing logic is built around it (deliberate; see brief §4). `UserProfileRepository` is `get()`/`save()` — singleton semantics, no id lookup needed. `ensureUserProfile()` (added in #4) silently creates the default profile on first save — the MVP never asks the user to sign up; the profile exists only so memories have an `authoredBy` id.
 
-#### `src/domain/export/` (`backup.ts`, `facts.ts`, `markdown.ts`, `print-html.ts`) — added in #11
-**Why it exists:** Export is serialization of domain data into open formats — pure TS over the repository interfaces (same pattern as `getOrCreateTodaysPrompt`), so the formats are unit-testable without a browser and reusable by import (#16).
+#### `src/domain/export/` (`backup.ts`, `facts.ts`, `markdown.ts`, `print-html.ts`, `restore.ts`) — added in #11, restore in #16
+**Why it exists:** Export is serialization of domain data into open formats — pure TS over the repository interfaces (same pattern as `getOrCreateTodaysPrompt`), so the formats are unit-testable without a browser and reusable by import (#16). Restore lives in the same folder because it is the inverse of the same `BackupFile` shape — one shared schema, so the two can never drift apart.
 
 | Export | Purpose |
 |--------|---------|
-| `BackupFile` / `BACKUP_SCHEMA_VERSION` | The lossless JSON backup shape: user profile, prompts, memories, **full version histories**, people, places, tags, and photos with their bytes inline (base64) — one self-contained file. `schemaVersion` (currently 1) is what import (#16) will check. |
+| `BackupFile` / `BACKUP_SCHEMA_VERSION` | The lossless JSON backup shape: user profile, prompts, memories, **full version histories**, people, places, tags, and photos with their bytes inline (base64) — one self-contained file. `schemaVersion` (currently 1) is what import (#16) checks. |
 | `BackupSources` | The seven repository interfaces export reads from — structurally satisfied by the app's `Repositories` bundle, but declared in domain so the layer boundary holds. |
 | `collectBackup(sources, deps)` | Walks all repositories (versions via `getVersions` per memory, photo bytes via `getBlob`) into one `BackupFile`. Injected `now` keeps `exportedAt` deterministic in tests. A missing photo blob becomes `content: null` rather than failing the whole export. |
 | `serializeBackup(backup)` | Pretty-printed JSON — the backup stays human-inspectable. |
 | `backupToMarkdown(backup)` | One readable document, **oldest memory first** (a life reads forward): `## word — YYYY-MM-DD` headings, story verbatim (the author's own text is not escaped), detail bullets (When/People/Places/Tags) only where present. Dates use `localDateKey` — locale-free on purpose. |
 | `backupToPrintHtml(backup)` | Self-contained printable HTML (inline serif styling, `break-inside: avoid` per memory, story text HTML-escaped). "Export to PDF" is the browser's print dialog over this document — no PDF library dependency. |
 | `facts.ts` (internal) | Shared shaping for the two human-readable formats: resolves prompt words and people/place/tag names, orders memories, builds the detail lines — so Markdown and print/PDF can never disagree about what a memory says. |
+| `backupFileSchema` / `parseBackup(text)` (added in #16) | The Zod mirror of `BackupFile`; `parseBackup`'s return type pins the schema to `BackupFile` at compile time so they cannot silently drift. Checks go outside-in (JSON → is it ours → format version → full shape) and every thrown message is written for the user — the UI shows it verbatim. |
+| `summarizeBackup(backup)` / `BackupSummary` (added in #16) | Counts of every entity (versions and byte-less photos included) — what the import UI reports **before anything is written**. |
+| `RestoreTarget` (added in #16) | The write half of restore, implemented by the persistence layer: `hasUserData()` (auto-created rows — today's prompt, the default profile — deliberately don't count) and `replaceAll(backup)` (atomic wholesale replacement). Sits beside, not inside, the per-entity repositories because no per-entity contract should offer "replace storage wholesale". |
+| `restoreBackup(backup, target)` (added in #16) | MVP merge strategy: restore only into an empty app (id-collision skip/overwrite is a follow-up). Refuses with a clear message when user data exists; otherwise hands the backup to the target. |
+| `base64ToBytes(base64)` (added in #16) | Inverse of the export's photo-byte encoding — rebuilds the blob bytes on restore. |
 
 ---
 
@@ -196,13 +201,16 @@ Key decision: `update()` inserts the version with Dexie's `add` (not `put`) insi
 #### `prompt-repository.ts` / `person-repository.ts` / `place-repository.ts` / `tag-repository.ts` / `user-profile-repository.ts`
 **Why they exist:** Straightforward implementations of their domain interfaces. Ordering conventions: prompts by `createdAt`, people/places by `name`, tags by `label`.
 
+#### `restore-target.ts` — `IndexedDbRestoreTarget` (added in #16)
+**Why it exists:** Implements `RestoreTarget`. `replaceAll` is one Dexie transaction that clears every table and writes the backup's rows — all-or-nothing, and the resulting database is exactly what export read, which is what makes the round-trip identical. Photo rows and blob rows are rebuilt before the transaction opens (Dexie aborts a transaction that waits on non-database work); a photo exported with `content: null` gets its metadata back but no invented blob. `hasUserData()` counts memories/people/places/tags/photos only — prompts and profiles are auto-created on app load and must not make a fresh browser look "occupied".
+
 #### `index.ts`
 **Why it exists:** The composition point for the whole persistence layer.
 
 | Export | Purpose |
 |--------|---------|
-| `Repositories` | Interface bundling all seven repository interfaces — what the app "sees". |
-| `createIndexedDbRepositories(dbName?)` | Builds one `LifeLikeKaleidoscopeDb` and wires all seven implementations around it. A future remote backend replaces this one factory. |
+| `Repositories` | Interface bundling all seven repository interfaces plus the `RestoreTarget` (#16) — what the app "sees". |
+| `createIndexedDbRepositories(dbName?)` | Builds one `LifeLikeKaleidoscopeDb` and wires all the implementations around it. A future remote backend replaces this one factory. |
 | Class re-exports | Individual repositories, mainly for tests. |
 
 ---
@@ -228,6 +236,7 @@ Zustand owns UI/session state only; persisted data always flows through the doma
 | `daily-prompt/vertical-slice.test.tsx` | The end-to-end slice as a test: word appears → type → save → echoed on Today → listed on Memories, against real stores + fake-indexeddb. Also regression tests for the StrictMode double-load race and the duplicate-prompt healing path. |
 | `export/ExportPage.tsx` (real since #11) | Three calm cards — JSON backup (the lossless restore file), Markdown (readable, oldest first), PDF (opens the browser print dialog on the printable document; "Save as PDF" lives there). Collects a fresh `BackupFile` on each click via `getRepositories()`; per-format busy labels, a `role="alert"` message on failure or when a popup blocker eats the print window. No store — export is a one-shot action with no session state worth keeping. |
 | `export/download.ts` | The browser-only delivery half, deliberately outside `domain/`: `downloadTextFile` (object URL + anchor click) and `openPrintDialog` (`window.open` → write → `print()`, returning `false` when popup-blocked so the page can explain). |
+| `export/ImportBackupCard.tsx` (added in #16) | The read-it-back half of the JSON backup, a fourth card on the Export page. Two steps on purpose: choosing a file only parses/validates and reports what it holds ("nothing has been written yet"); restore runs only after an explicit confirm. Parse/restore errors surface verbatim in a `role="alert"` — they're written for the user in `restore.ts`. Success links to `/memories`. |
 | Other `…Page.tsx` files | Still placeholders for their epics. |
 
 ---
@@ -290,8 +299,10 @@ shadcn-style primitives, hand-written (new-york style, React 19 ref-as-prop, no 
 | `src/app/SettingsPage.test.tsx` | Added in #17. Status rendering per persistence state, suggestion only when not granted, dismissal sticks across visits. |
 | `src/domain/export/export.test.ts` | Added in #11. Pure, against hand-rolled in-memory `BackupSources`: backup completeness incl. version histories, `null` (not dropped-key `undefined`) profile, photo-bytes base64 round-trip + missing-blob tolerance, JSON serialize/parse identity, Markdown ordering/headings/detail lines, HTML escaping and paragraph preservation. |
 | `src/features/export/ExportPage.test.tsx` | Added in #11. The page against real repositories + fake-indexeddb, with `URL.createObjectURL`/anchor-click stubbed (jsdom has neither): JSON download parses back to the saved memory + version, Markdown contains the word heading, PDF path writes the document and calls `print()`, popup-blocked path shows the alert. |
+| `src/domain/export/restore.test.ts` | Added in #16. Pure: serialize→parse identity, each rejection message (not JSON / not ours / newer format version / named broken field), summary counts, refusal over existing data, base64 inversion. |
+| `src/infrastructure/persistence/indexeddb/restore-target.test.ts` | Added in #16. Against fake-indexeddb: the issue's acceptance test — export → fresh browser (with auto-created prompt/profile) → import → re-export equals the original; photo blob readable after restore; auto-created rows count as empty; refusal leaves existing data untouched. |
 
-Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 71 tests as of #11.
+Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 84 tests as of #16.
 
 **Browser verification:** `playwright-core` (dev dependency, added with #3) drives the built app in the system's Edge/Chrome (`channel:` launch — no browser binaries downloaded). Used for per-epic runtime verification: viewport checks at 390×844 and 1280×800, favicon/response checks, screenshots.
 
@@ -321,9 +332,10 @@ flowchart LR
         E3["#4 Epic 3 — Daily Prompt slice"]
         PS["#17 Persistent storage + Settings status"]
         EX["#11 Epic 11 — Export (JSON / Markdown / print-to-PDF)"]
+        IM["#16 JSON backup import/restore"]
     end
     subgraph Next ["⏭ Next"]
-        DS["#16 JSON backup import/restore (Tier 4)"]
+        E4["#5 Epic 4 — Memory entry CRUD & version history (Tier 5)"]
     end
     Done --> Next
 ```
