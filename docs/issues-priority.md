@@ -42,7 +42,7 @@ _Pulled up from the end of the queue: once real writing exists (Tier 3), users n
 |---|-------|-------|
 | ~~[#17](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/17)~~ | ~~feat: persistent storage request + storage status~~ | Done ✓ — `persist()` on bootstrap, storage status + dismissible backup suggestion on Settings |
 | ~~[#11](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/11)~~ | ~~Epic 11 — Export~~ | ~~**JSON first** (it's the backup format), Markdown next; PDF can trail into Tier 5~~ |
-| [#16](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/16) | feat: JSON backup import/restore | Round-trips #11's JSON format incl. version histories and photos; depends on #11 |
+| ~~[#16](https://github.com/ZhannaM85/life-like-kaleidoscope/issues/16)~~ | ~~feat: JSON backup import/restore~~ | Done ✓ — Zod-validated parse, pre-write summary, restore-into-empty-app (MVP merge strategy), round-trip tested against fake-indexeddb |
 
 ---
 
