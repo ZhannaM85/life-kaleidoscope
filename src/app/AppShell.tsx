@@ -2,6 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { BookOpen, Download, Feather, Network, Search, Settings } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useLocaleStore } from '@/stores'
+import type { Dictionary } from '@/i18n'
 
 interface AppNavLink {
   to: string
@@ -10,16 +12,21 @@ interface AppNavLink {
   end?: boolean
 }
 
-const navLinks: AppNavLink[] = [
-  { to: '/', label: 'Today', icon: Feather, end: true },
-  { to: '/memories', label: 'Memories', icon: BookOpen },
-  { to: '/search', label: 'Search', icon: Search },
-  { to: '/graph', label: 'Graph', icon: Network },
-  { to: '/export', label: 'Export', icon: Download },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
+function navLinksFor(t: Dictionary): AppNavLink[] {
+  return [
+    { to: '/', label: t.nav.today, icon: Feather, end: true },
+    { to: '/memories', label: t.nav.memories, icon: BookOpen },
+    { to: '/search', label: t.nav.search, icon: Search },
+    { to: '/graph', label: t.nav.graph, icon: Network },
+    { to: '/export', label: t.nav.export, icon: Download },
+    { to: '/settings', label: t.nav.settings, icon: Settings },
+  ]
+}
 
 export function AppShell() {
+  const t = useLocaleStore((s) => s.dictionary)
+  const navLinks = navLinksFor(t)
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
@@ -28,7 +35,7 @@ export function AppShell() {
             Life Like Kaleidoscope
           </span>
           {/* Desktop nav — hidden on phones, where the bottom tab bar takes over (#14) */}
-          <nav aria-label="Main navigation" className="hidden sm:block">
+          <nav aria-label={t.nav.mainNavigation} className="hidden sm:block">
             <ul className="m-0 flex list-none items-center gap-6 p-0">
               {navLinks.map(({ to, label, end }) => (
                 <li key={to}>
@@ -60,7 +67,7 @@ export function AppShell() {
 
       {/* Mobile bottom tab bar — every target ≥44px (#14) */}
       <nav
-        aria-label="Main navigation"
+        aria-label={t.nav.mainNavigation}
         className="fixed inset-x-0 bottom-0 border-t border-border bg-background/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)] sm:hidden"
       >
         <ul className="m-0 grid list-none grid-cols-6 p-0">

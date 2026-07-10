@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { SettingsPage } from './SettingsPage'
 import { getStorageStatus } from '@/infrastructure/persistence/storage-persistence'
+import { useLocaleStore } from '@/stores'
+import { getDictionary } from '@/i18n'
 
 vi.mock('@/infrastructure/persistence/storage-persistence', () => ({
   getStorageStatus: vi.fn(),
@@ -22,6 +24,7 @@ function renderSettings() {
 beforeEach(() => {
   localStorage.clear()
   mockedGetStorageStatus.mockReset()
+  useLocaleStore.setState({ locale: 'en', dictionary: getDictionary('en') })
 })
 
 describe('SettingsPage', () => {
@@ -57,6 +60,19 @@ describe('SettingsPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Okay, noted' }))
     expect(screen.queryByText('A gentle suggestion')).not.toBeInTheDocument()
+  })
+
+  it('switches the interface to Russian and remembers the choice (#18)', async () => {
+    mockedGetStorageStatus.mockResolvedValue({ persisted: true, usage: null, quota: null })
+    renderSettings()
+
+    expect(screen.getByText('Settings')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: 'Русский' }))
+
+    expect(screen.getByText('Настройки')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Русский' })).toHaveAttribute('aria-checked', 'true')
+    expect(localStorage.getItem('life-like-kaleidoscope.locale')).toBe('ru')
+    expect(document.documentElement.lang).toBe('ru')
   })
 
   it('remembers the dismissal across visits', async () => {

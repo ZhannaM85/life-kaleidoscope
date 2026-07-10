@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { BookOpen } from 'lucide-react'
 import { editMemory, type MemoryEdit } from '@/domain/memory'
 import { defaultGenerateId, nowIso } from '@/domain/shared'
-import { getRepositories } from '@/stores'
+import { getRepositories, useLocaleStore } from '@/stores'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { PageHeader } from '@/shared/ui/page-header'
 import { MemoryForm } from './MemoryForm'
@@ -17,6 +17,7 @@ import { memoryFieldsFromValues, resolveEntityIds, type MemoryFormValues } from 
 export function MemoryEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const t = useLocaleStore((s) => s.dictionary)
   const [context, setContext] = useState<MemoryContext | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'saving' | 'missing' | 'error'>(
     'loading'
@@ -76,21 +77,21 @@ export function MemoryEditPage() {
   }
 
   if (status === 'loading') {
-    return <p className="py-24 text-center text-muted-foreground">Finding that page…</p>
+    return <p className="py-24 text-center text-muted-foreground">{t.common.findingPage}</p>
   }
 
   if (status === 'missing') {
     return (
       <EmptyState
         icon={BookOpen}
-        title="This memory isn't here"
-        description="It may have been deleted, or the link is old."
+        title={t.common.memoryNotFoundTitle}
+        description={t.common.memoryNotFoundDescription}
         action={
           <Link
             to="/memories"
             className="font-sans text-sm underline underline-offset-2 text-muted-foreground hover:text-foreground"
           >
-            Back to all memories
+            {t.common.backToAllMemories}
           </Link>
         }
       />
@@ -100,7 +101,7 @@ export function MemoryEditPage() {
   if (!context) {
     return (
       <p role="alert" className="py-24 text-center text-muted-foreground">
-        Something went wrong opening this memory. {error}
+        {t.memoryDetail.errorOpening(error ?? '')}
       </p>
     )
   }
@@ -109,15 +110,10 @@ export function MemoryEditPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Edit memory"
-        description={`Every save is kept — the earlier versions stay in this memory's history.${
-          word ? ` Inspired by the word “${word}”.` : ''
-        }`}
-      />
+      <PageHeader title={t.memoryEdit.title} description={t.memoryEdit.description(word)} />
       {error && (
         <p role="alert" className="mb-6 font-sans text-sm text-destructive">
-          Something went wrong saving. {error}
+          {t.common.errorSaving(error)}
         </p>
       )}
       <MemoryForm
@@ -130,8 +126,8 @@ export function MemoryEditPage() {
           places: context.placeNames.join(', '),
           tags: context.tagLabels.join(', '),
         }}
-        submitLabel="Save changes"
-        savingLabel="Saving…"
+        submitLabel={t.memoryEdit.saveChanges}
+        savingLabel={t.common.saving}
         saving={status === 'saving'}
         cancelTo={`/memories/${memory.id}`}
         onSubmit={(values) => void save(values)}

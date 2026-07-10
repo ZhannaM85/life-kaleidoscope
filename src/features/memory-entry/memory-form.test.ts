@@ -3,13 +3,16 @@ import type { EntityId, GenerateId } from '@/domain/shared'
 import type { Person, PersonRepository } from '@/domain/person'
 import type { Place, PlaceRepository } from '@/domain/place'
 import type { Tag, TagRepository } from '@/domain/tag'
+import { en } from '@/i18n/en'
 import {
+  makeMemoryFormSchema,
   memoryFieldsFromValues,
-  memoryFormSchema,
   parseNameList,
   resolveEntityIds,
   type MemoryFormValues,
 } from './memory-form'
+
+const memoryFormSchema = makeMemoryFormSchema(en.memoryForm)
 
 function values(overrides: Partial<MemoryFormValues> = {}): MemoryFormValues {
   return {

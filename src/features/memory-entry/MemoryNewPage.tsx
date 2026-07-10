@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { createMemory } from '@/domain/memory'
 import { defaultGenerateId, nowIso } from '@/domain/shared'
 import { ensureUserProfile } from '@/domain/user'
-import { getRepositories, useDailyPromptStore } from '@/stores'
+import { getRepositories, useDailyPromptStore, useLocaleStore } from '@/stores'
 import { PageHeader } from '@/shared/ui/page-header'
 import { MemoryForm } from './MemoryForm'
 import { memoryFieldsFromValues, resolveEntityIds, type MemoryFormValues } from './memory-form'
@@ -17,6 +17,7 @@ import { memoryFieldsFromValues, resolveEntityIds, type MemoryFormValues } from 
 export function MemoryNewPage() {
   const navigate = useNavigate()
   const { prompt, status: promptStatus, error: promptError, load } = useDailyPromptStore()
+  const t = useLocaleStore((s) => s.dictionary)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,26 +61,23 @@ export function MemoryNewPage() {
   }
 
   if (promptStatus === 'loading' || (promptStatus === 'idle' && !prompt)) {
-    return <p className="py-24 text-center text-muted-foreground">Opening a fresh page…</p>
+    return <p className="py-24 text-center text-muted-foreground">{t.memoryNew.opening}</p>
   }
 
   if (!prompt) {
     return (
       <p role="alert" className="py-24 text-center text-muted-foreground">
-        Something went wrong opening a fresh page. {promptError}
+        {t.memoryNew.errorOpening(promptError ?? '')}
       </p>
     )
   }
 
   return (
     <div>
-      <PageHeader
-        title="New memory"
-        description={`Inspired by today's word — “${prompt.word}”. Only the story itself is needed; the rest can wait.`}
-      />
+      <PageHeader title={t.memoryNew.title} description={t.memoryNew.description(prompt.word)} />
       {error && (
         <p role="alert" className="mb-6 font-sans text-sm text-destructive">
-          Something went wrong saving. {error}
+          {t.common.errorSaving(error)}
         </p>
       )}
       <MemoryForm
@@ -92,8 +90,8 @@ export function MemoryNewPage() {
           places: '',
           tags: '',
         }}
-        submitLabel="Keep this memory"
-        savingLabel="Saving…"
+        submitLabel={t.common.keepThisMemory}
+        savingLabel={t.common.saving}
         saving={saving}
         cancelTo="/memories"
         onSubmit={(values) => void save(values)}

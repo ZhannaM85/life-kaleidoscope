@@ -9,7 +9,8 @@ import {
   type BackupSummary,
 } from '@/domain/export'
 import { localDateKey } from '@/domain/prompt'
-import { getRepositories } from '@/stores'
+import { getRepositories, useLocaleStore } from '@/stores'
+import type { Dictionary } from '@/i18n'
 import { cn } from '@/shared/lib/utils'
 import { Button, buttonVariants } from '@/shared/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
@@ -20,19 +21,15 @@ interface PendingImport {
   filename: string
 }
 
-function plural(count: number, singular: string, pluralForm: string): string {
-  return `${count} ${count === 1 ? singular : pluralForm}`
-}
-
-function describeSummary(summary: BackupSummary): string {
+function describeSummary(t: Dictionary, summary: BackupSummary): string {
   return [
-    plural(summary.memories, 'memory', 'memories'),
-    `${plural(summary.memoryVersions, 'version', 'versions')} of their history`,
-    plural(summary.people, 'person', 'people'),
-    plural(summary.places, 'place', 'places'),
-    plural(summary.tags, 'tag', 'tags'),
-    plural(summary.photos, 'photo', 'photos'),
-    plural(summary.prompts, 'prompt word', 'prompt words'),
+    t.importBackup.counts.memories(summary.memories),
+    t.importBackup.counts.memoryVersionsOfHistory(summary.memoryVersions),
+    t.importBackup.counts.people(summary.people),
+    t.importBackup.counts.places(summary.places),
+    t.importBackup.counts.tags(summary.tags),
+    t.importBackup.counts.photos(summary.photos),
+    t.importBackup.counts.promptWords(summary.prompts),
   ].join(', ')
 }
 
@@ -42,6 +39,7 @@ function describeSummary(summary: BackupSummary): string {
  * written until the user confirms.
  */
 export function ImportBackupCard() {
+  const t = useLocaleStore((s) => s.dictionary)
   const [pending, setPending] = useState<PendingImport | null>(null)
   const [busy, setBusy] = useState(false)
   const [restored, setRestored] = useState<BackupSummary | null>(null)
@@ -83,12 +81,9 @@ export function ImportBackupCard() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Upload aria-hidden className="size-4 text-muted-foreground" />
-          Restore a backup
+          {t.importBackup.title}
         </CardTitle>
-        <CardDescription>
-          Bring a JSON backup made above back into an empty app — every memory, its full version
-          history, people, places, tags, and photos, exactly as exported.
-        </CardDescription>
+        <CardDescription>{t.importBackup.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {error && (
@@ -98,9 +93,9 @@ export function ImportBackupCard() {
         )}
         {restored && (
           <p role="status" className="font-sans text-sm">
-            Backup restored — {describeSummary(restored)} are back.{' '}
+            {t.importBackup.restoredMessage(describeSummary(t, restored))}{' '}
             <Link to="/memories" className="underline underline-offset-2 hover:text-foreground">
-              See your memories
+              {t.importBackup.seeYourMemories}
             </Link>
             .
           </p>
@@ -108,21 +103,23 @@ export function ImportBackupCard() {
         {pending ? (
           <div className="flex flex-col gap-3">
             <p className="font-sans text-sm">
-              <span className="font-medium">{pending.filename}</span>, exported on{' '}
-              {localDateKey(new Date(pending.summary.exportedAt))}, holds{' '}
-              {describeSummary(pending.summary)}.
+              {t.importBackup.pendingSummary(
+                pending.filename,
+                localDateKey(new Date(pending.summary.exportedAt)),
+                describeSummary(t, pending.summary)
+              )}
               {pending.summary.photosWithoutBytes > 0 &&
-                ` ${plural(pending.summary.photosWithoutBytes, 'photo was', 'photos were')} already missing image data when this backup was made.`}
+                t.importBackup.photosWithoutBytesNote(pending.summary.photosWithoutBytes)}
             </p>
             <p className="font-sans text-sm text-muted-foreground">
-              Nothing has been written yet.
+              {t.importBackup.nothingWrittenYet}
             </p>
             <div className="flex gap-2">
               <Button disabled={busy} onClick={() => void confirmRestore()}>
-                {busy ? 'Restoring…' : 'Restore this backup'}
+                {busy ? t.common.restoring : t.importBackup.restoreThisBackup}
               </Button>
               <Button variant="ghost" disabled={busy} onClick={() => setPending(null)}>
-                Cancel
+                {t.common.cancel}
               </Button>
             </div>
           </div>
@@ -138,10 +135,10 @@ export function ImportBackupCard() {
               type="file"
               accept=".json,application/json"
               className="sr-only"
-              aria-label="Choose backup file"
+              aria-label={t.importBackup.chooseBackupFile}
               onChange={(event) => void pickFile(event)}
             />
-            Choose backup file
+            {t.importBackup.chooseBackupFile}
           </label>
         )}
       </CardContent>
