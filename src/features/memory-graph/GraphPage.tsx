@@ -1,5 +1,7 @@
 import { PlaceholderPage } from '@/shared/ui/PlaceholderPage'
+import { useLocaleStore } from '@/stores'
 
 export function GraphPage() {
-  return <PlaceholderPage title="Memory Graph" description="Epic 8 — Memory graph." />
+  const t = useLocaleStore((s) => s.dictionary)
+  return <PlaceholderPage title={t.graphPage.title} description={t.placeholder.comingSoon} />
 }

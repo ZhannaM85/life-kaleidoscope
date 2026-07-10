@@ -130,6 +130,7 @@ Pure TypeScript. Unit-testable with no DOM. If a file here ever needs `react`, `
 | `Prompt` | `{ id, word, createdAt }`. |
 | `PromptRepository` | `save`, `getById`, `getAll` (oldest first), `getByWord` — every issuance of a word, for the reflection callback. |
 | `WORD_POOL` (added in #4) | ~200 curated single words — concrete, sensory nouns ("Bicycle", "Kitchen"), not abstractions. Data only. |
+| `WORD_POOL_RU` / `getWordPool(locale)` / `Locale` (added in #18) | The Russian pool is **curated, not translated** — built independently around the same idea ("Lunchbox" carries no memory-weight in Russian; «Дача», «Электричка», «Подъезд» have no English equivalent). `getWordPool` keys the active pool off the two-value `Locale`, which lives here (not in `src/i18n/`) because pool selection is domain logic; the i18n layer re-exports it. |
 | `localDateKey(date)` (added in #4) | Local `YYYY-MM-DD` — the boundary for "today's" prompt. Local time on purpose: a memory written at 23:50 belongs to that evening. |
 | `chooseDailyWord(args)` (added in #4) | Pure selection: FNV-1a hash of the date key indexes into the words not used within the no-repeat window (default 120 days), so a reload never reshuffles today's word. If every word is inside the window (tiny custom pools), falls back to the least-recently-used word instead of failing. |
 | `getOrCreateTodaysPrompt(repo, deps)` (added in #4) | Idempotent per local day: returns today's existing prompt or chooses, persists, and returns a new one. Injected `generateId`/`now` keep it testable. |
@@ -224,6 +225,23 @@ Zustand owns UI/session state only; persisted data always flows through the doma
 | `repositories.ts` | The app-wide persistence handle: lazy `getRepositories()` returning the `Repositories` bundle (IndexedDB-backed today), plus `setRepositories()` as the test seam. The one place that picks an implementation. |
 | `daily-prompt-store.ts` | Today's prompt, the in-progress draft, today's saved memories, and `load`/`setDraft`/`save` actions. `load()` guards against concurrent invocation (React StrictMode double-runs effects in dev — without the guard, two racing `getOrCreateTodaysPrompt` calls each created a prompt; found by browser verification, not by tests). It also collects memories across **all** of today's prompts, healing any duplicate same-day prompt data. `save()` runs `ensureUserProfile` → `createMemory` → `MemoryRepository.create`. |
 | `memories-store.ts` | All memories (newest first) plus a `promptsById` lookup so the list can show each memory's word. |
+| `locale-store.ts` (added in #18) | The active UI language and its dictionary. Reads the initial locale synchronously (`localStorage` choice, else `navigator.language`) so the first paint is already in the right language — no IndexedDB round-trip, no flash. `setLocale` persists the choice, updates `<html lang>`, and swaps the dictionary; it never touches issued prompts or memories. |
+
+---
+
+### Localization (`src/i18n/`) — added in #18
+
+A minimal typed dictionary module, not an i18n framework — the string surface is small, and the `Dictionary` interface makes a missing Russian key a **compile error** instead of a silent English fallback.
+
+| File | Purpose |
+|------|---------|
+| `dictionary.ts` | The `Dictionary` interface: every user-facing string in the app, grouped per screen. Parameterized strings are typed functions (`errorSaving(error)`, `versionNumber(n)`), so word order is free to differ between languages. |
+| `en.ts` / `ru.ts` | The two dictionaries. Russian is translated for tone, not word-for-word — the same quiet notebook voice, no bureaucratic register. |
+| `plural.ts` | `pluralEn` (one/many) and `pluralRu` (CLDR one/few/many — «1 год, 2 года, 5 лет»), used inside the dictionaries so count phrasing stays a dictionary concern. |
+| `locale.ts` | `detectLocale` (from `navigator.language`), `read`/`saveStoredLocale` (localStorage, throw-tolerant), `localeTag` (`en` → `en-US` for `toLocaleDateString`), `applyDocumentLanguage` (keeps `<html lang>` honest for assistive tech). |
+| `i18n.test.ts` (added in #18) | Plural rules incl. the Russian teens/tens edge cases (11 vs 21, 12–14 vs 22–24), locale persistence round-trip + garbage tolerance, browser detection, `<html lang>` sync. |
+
+Every screen reads strings via `useLocaleStore((s) => s.dictionary)`. Deliberately **not** localized: exported Markdown/print documents (long-lived archives with `localDateKey` dates — stable regardless of later language switches, noted "locale-free on purpose" in the export design) and the restore error messages written in `domain/export/restore.ts` (the domain writes them verbatim for the UI; localizing them means an error-code contract — a follow-up if wanted).
 
 ---
 
@@ -233,7 +251,7 @@ Zustand owns UI/session state only; persisted data always flows through the doma
 |------|---------|
 | `daily-prompt/TodayPage.tsx` (real since #4) | The heart of the app: date + today's word large and centered, a serif textarea ("A memory this word brings back"), and a single "Keep this memory" button (disabled while empty/saving — no error states for an empty page, per the no-guilt stance). Saved entries are echoed below with a link to the full list; writing more than once a day is allowed and unceremonious. |
 | `memory-entry/MemoriesPage.tsx` (real since #4) | Newest-first cards — word, written-on date, three-line story excerpt — each linking to `/memories/:id`. Calm `EmptyState` pointing back to today's word when nothing exists; a "Write a memory" header action opens the full form (#5). |
-| `memory-entry/memory-form.ts` (added in #5) | The full form's logic half: `memoryFormSchema` (Zod — only the story is required; age/year just have to be plausible integers when given), `parseNameList` (comma-separated names → trimmed, case-insensitively deduped), `memoryFieldsFromValues` (raw strings → `MemoryDraft`/`MemoryEdit` shapes), and `resolveEntityIds`, which reuses existing people/places/tags by name (case-insensitive) and creates the rest — graph nodes stay stable across memories. |
+| `memory-entry/memory-form.ts` (added in #5) | The full form's logic half: `makeMemoryFormSchema` (Zod — only the story is required; age/year just have to be plausible integers when given; a factory since #18, taking its validation messages from the active dictionary), `parseNameList` (comma-separated names → trimmed, case-insensitively deduped), `memoryFieldsFromValues` (raw strings → `MemoryDraft`/`MemoryEdit` shapes), and `resolveEntityIds`, which reuses existing people/places/tags by name (case-insensitive) and creates the rest — graph nodes stay stable across memories. |
 | `memory-entry/MemoryForm.tsx` (added in #5) | The shared form component (RHF + zodResolver) used by both the new and edit pages: title, story, approx age/year, and comma-separated people/places/tags, every field but the story optional ("an invitation, not a demand"). |
 | `memory-entry/memory-context.ts` (added in #5) | `loadMemoryContext(id)` — one load for everything the memory pages show: the memory plus its prompt word and people/place/tag display names resolved from ids. |
 | `memory-entry/MemoryNewPage.tsx` (added in #5) | `/memories/new` — the roomier sibling of the Today quick entry. Attaches the new memory to today's prompt through the daily-prompt store (so its StrictMode-safe guard keeps the day to one prompt), then navigates to the detail page. Reached from a Memories header action and a quiet link beside Today's save button. |
@@ -256,7 +274,7 @@ Zustand owns UI/session state only; persisted data always flows through the doma
 | `src/App.tsx` | `createBrowserRouter` with the eight routes from brief §6 (`/`, `/memories`, `/memories/:id`, `/memories/:id/edit`, `/search`, `/graph`, `/export`, `/settings`) plus `/memories/new` and `/memories/:id/history` (#5), all nested under `AppShell`, plus a `*` catch-all → `NotFoundPage` (#23). `basename` follows `import.meta.env.BASE_URL` so routes resolve under the GitHub Pages subpath (#21). |
 | `src/app/AppShell.tsx` | Responsive shell (reworked in #3/#14). Desktop (`sm+`): header with title + horizontal text nav. Phones: header shows the title only; navigation moves to a **fixed bottom tab bar** — six icon+label tabs (lucide icons), each ≥56px tall, `env(safe-area-inset-bottom)` padding, `main` gets `pb-28` so content clears the bar. Only one nav is in the accessibility tree at a time (the other is `display:none`). Verified at 390×844: no overflow, no clipping. |
 | `src/main.tsx` | Entry point. Calls `requestPersistentStorage()` fire-and-forget before render (added in #17) so the browser can protect IndexedDB from silent eviction. |
-| `src/app/SettingsPage.tsx` (real since #17) | "Your data" card: storage protection status + space used from `getStorageStatus()`, in a calm, informational tone (no alarm styling). When persistence is not granted, a dismissible "gentle suggestion" card points at the Export page for occasional backups — dismissal remembered in `localStorage`, no nagging. |
+| `src/app/SettingsPage.tsx` (real since #17) | "Your data" card: storage protection status + space used from `getStorageStatus()`, in a calm, informational tone (no alarm styling). When persistence is not granted, a dismissible "gentle suggestion" card points at the Export page for occasional backups — dismissal remembered in `localStorage`, no nagging. A "Language" card (added in #18) switches English/Русский via a two-button radiogroup; the card's copy states the contract: menus and *new* daily words follow the choice, written memories keep the words they were written with. |
 | `src/app/NotFoundPage.tsx` (added in #23) | Calm not-found screen for unknown routes — `EmptyState` inside the shell with a link back to Today. Replaces react-router's default developer error page, which became user-visible once the app was deployed (#21). |
 | `src/features/*/…Page.tsx` | One placeholder screen per remaining route, in their future feature homes. |
 
@@ -304,13 +322,16 @@ shadcn-style primitives, hand-written (new-york style, React 19 ref-as-prop, no 
 
 | `src/domain/prompt/daily-prompt.test.ts` | Added in #4. Determinism per date, window exclusion, LRU fallback, per-day idempotency, pool-vs-window sanity, timezone-safe date keys. |
 | `src/infrastructure/persistence/storage-persistence.test.ts` | Added in #17. Stubs `navigator.storage`: persist grant/deny, all-null status when the API is missing, rejection tolerance. |
-| `src/app/SettingsPage.test.tsx` | Added in #17. Status rendering per persistence state, suggestion only when not granted, dismissal sticks across visits. |
+| `src/app/SettingsPage.test.tsx` | Added in #17. Status rendering per persistence state, suggestion only when not granted, dismissal sticks across visits. Since #18: switching to Русский re-renders the page in Russian, persists the choice, and updates `<html lang>`. |
 | `src/domain/export/export.test.ts` | Added in #11. Pure, against hand-rolled in-memory `BackupSources`: backup completeness incl. version histories, `null` (not dropped-key `undefined`) profile, photo-bytes base64 round-trip + missing-blob tolerance, JSON serialize/parse identity, Markdown ordering/headings/detail lines, HTML escaping and paragraph preservation. |
 | `src/features/export/ExportPage.test.tsx` | Added in #11. The page against real repositories + fake-indexeddb, with `URL.createObjectURL`/anchor-click stubbed (jsdom has neither): JSON download parses back to the saved memory + version, Markdown contains the word heading, PDF path writes the document and calls `print()`, popup-blocked path shows the alert. |
 | `src/domain/export/restore.test.ts` | Added in #16. Pure: serialize→parse identity, each rejection message (not JSON / not ours / newer format version / named broken field), summary counts, refusal over existing data, base64 inversion. |
 | `src/infrastructure/persistence/indexeddb/restore-target.test.ts` | Added in #16. Against fake-indexeddb: the issue's acceptance test — export → fresh browser (with auto-created prompt/profile) → import → re-export equals the original; photo blob readable after restore; auto-created rows count as empty; refusal leaves existing data untouched. |
+| `src/i18n/i18n.test.ts` | Added in #18. Plural rules (incl. Russian 11/21/12–14 edges), locale persistence + detection, `<html lang>` sync. |
+| `src/domain/prompt/words.test.ts` | Added in #18. Both pools: no case-insensitive duplicates, no blank entries, larger than the 120-day window; the Russian pool is actually Cyrillic; `getWordPool` mapping. |
+| `src/stores/daily-prompt-locale.test.ts` | Added in #18. Against fake-indexeddb: a Russian locale draws today's word from the Russian pool; a mid-day language switch never changes the already-issued word. |
 
-Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 84 tests as of #16.
+Test stack: Vitest + jsdom + `fake-indexeddb` (dev dependency). 114 tests as of #18.
 
 **Browser verification:** `playwright-core` (dev dependency, added with #3) drives the built app in the system's Edge/Chrome (`channel:` launch — no browser binaries downloaded). Used for per-epic runtime verification: viewport checks at 390×844 and 1280×800, favicon/response checks, screenshots.
 
@@ -342,9 +363,10 @@ flowchart LR
         EX["#11 Epic 11 — Export (JSON / Markdown / print-to-PDF)"]
         IM["#16 JSON backup import/restore"]
         E4["#5 Epic 4 — Memory entry CRUD & version history"]
+        L10N["#18 Localization — Russian support"]
     end
     subgraph Next ["⏭ Next"]
-        L10N["#18 Localization — Russian support (Tier 5)"]
+        AD["#25 Approximate date on Today quick entry (Tier 5)"]
     end
     Done --> Next
 ```

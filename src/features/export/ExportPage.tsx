@@ -8,7 +8,7 @@ import {
 } from '@/domain/export'
 import { localDateKey } from '@/domain/prompt'
 import { nowIso } from '@/domain/shared'
-import { getRepositories } from '@/stores'
+import { getRepositories, useLocaleStore } from '@/stores'
 import { PageHeader } from '@/shared/ui/page-header'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
@@ -18,6 +18,7 @@ import { ImportBackupCard } from './ImportBackupCard'
 type ExportFormat = 'json' | 'markdown' | 'pdf'
 
 export function ExportPage() {
+  const t = useLocaleStore((s) => s.dictionary)
   const [busy, setBusy] = useState<ExportFormat | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,7 +41,7 @@ export function ExportPage() {
           'text/markdown'
         )
       } else if (!openPrintDialog(backupToPrintHtml(backup))) {
-        setError('The print view was blocked — allow pop-ups for this site and try again.')
+        setError(t.exportPage.printBlocked)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -51,10 +52,7 @@ export function ExportPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Export"
-        description="Your memories are yours — take them with you in open formats."
-      />
+      <PageHeader title={t.exportPage.title} description={t.exportPage.description} />
       {error && (
         <p role="alert" className="mb-6 font-sans text-sm text-destructive">
           {error}
@@ -65,12 +63,9 @@ export function ExportPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <FileJson aria-hidden className="size-4 text-muted-foreground" />
-              JSON backup
+              {t.exportPage.jsonTitle}
             </CardTitle>
-            <CardDescription>
-              Everything, losslessly — every memory, its full version history, people, places, tags,
-              and photos in one file. This is the file the restore below reads.
-            </CardDescription>
+            <CardDescription>{t.exportPage.jsonDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -78,7 +73,7 @@ export function ExportPage() {
               disabled={busy !== null}
               onClick={() => void exportAs('json')}
             >
-              {busy === 'json' ? 'Preparing…' : 'Download JSON'}
+              {busy === 'json' ? t.common.preparing : t.exportPage.downloadJson}
             </Button>
           </CardContent>
         </Card>
@@ -87,12 +82,9 @@ export function ExportPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText aria-hidden className="size-4 text-muted-foreground" />
-              Markdown
+              {t.exportPage.markdownTitle}
             </CardTitle>
-            <CardDescription>
-              One readable text file, oldest memory first — opens in any editor, today and in thirty
-              years.
-            </CardDescription>
+            <CardDescription>{t.exportPage.markdownDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -100,7 +92,7 @@ export function ExportPage() {
               disabled={busy !== null}
               onClick={() => void exportAs('markdown')}
             >
-              {busy === 'markdown' ? 'Preparing…' : 'Download Markdown'}
+              {busy === 'markdown' ? t.common.preparing : t.exportPage.downloadMarkdown}
             </Button>
           </CardContent>
         </Card>
@@ -109,15 +101,13 @@ export function ExportPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Printer aria-hidden className="size-4 text-muted-foreground" />
-              PDF
+              {t.exportPage.pdfTitle}
             </CardTitle>
-            <CardDescription>
-              A printable copy. Your browser's print dialog opens — choose “Save as PDF” there.
-            </CardDescription>
+            <CardDescription>{t.exportPage.pdfDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" disabled={busy !== null} onClick={() => void exportAs('pdf')}>
-              {busy === 'pdf' ? 'Preparing…' : 'Open print view'}
+              {busy === 'pdf' ? t.common.preparing : t.exportPage.openPrintView}
             </Button>
           </CardContent>
         </Card>

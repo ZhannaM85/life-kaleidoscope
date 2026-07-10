@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BookOpen } from 'lucide-react'
 import type { Memory, MemoryVersion } from '@/domain/memory'
-import { getRepositories } from '@/stores'
+import { getRepositories, useLocaleStore } from '@/stores'
+import { localeTag, type Locale } from '@/i18n'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { PageHeader } from '@/shared/ui/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 
-function savedOn(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })
+function savedOn(iso: string, locale: Locale) {
+  return new Date(iso).toLocaleString(localeTag(locale), { dateStyle: 'long', timeStyle: 'short' })
 }
 
 interface HistoryData {
@@ -24,6 +25,8 @@ interface HistoryData {
  */
 export function VersionHistoryPage() {
   const { id } = useParams()
+  const t = useLocaleStore((s) => s.dictionary)
+  const locale = useLocaleStore((s) => s.locale)
   const [data, setData] = useState<HistoryData | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -50,13 +53,13 @@ export function VersionHistoryPage() {
   }, [id])
 
   if (status === 'loading') {
-    return <p className="py-24 text-center text-muted-foreground">Leafing back…</p>
+    return <p className="py-24 text-center text-muted-foreground">{t.versionHistory.loading}</p>
   }
 
   if (status === 'error') {
     return (
       <p role="alert" className="py-24 text-center text-muted-foreground">
-        Something went wrong opening this history. {error}
+        {t.versionHistory.errorOpening(error ?? '')}
       </p>
     )
   }
@@ -65,14 +68,14 @@ export function VersionHistoryPage() {
     return (
       <EmptyState
         icon={BookOpen}
-        title="This memory isn't here"
-        description="It may have been deleted, or the link is old."
+        title={t.common.memoryNotFoundTitle}
+        description={t.common.memoryNotFoundDescription}
         action={
           <Link
             to="/memories"
             className="font-sans text-sm underline underline-offset-2 text-muted-foreground hover:text-foreground"
           >
-            Back to all memories
+            {t.common.backToAllMemories}
           </Link>
         }
       />
@@ -85,14 +88,14 @@ export function VersionHistoryPage() {
   return (
     <div>
       <PageHeader
-        title="Version history"
-        description="Every saved version of this memory, newest first. Past versions are kept as written — they can be read here, never changed."
+        title={t.versionHistory.title}
+        description={t.versionHistory.description}
         action={
           <Link
             to={`/memories/${memory.id}`}
             className="font-sans text-sm underline underline-offset-2 text-muted-foreground hover:text-foreground"
           >
-            Back to the memory
+            {t.versionHistory.backToMemory}
           </Link>
         }
       />
@@ -105,14 +108,14 @@ export function VersionHistoryPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">
-                    Version {number}
+                    {t.versionHistory.versionNumber(number)}
                     {isCurrent && (
                       <span className="ml-2 font-sans text-sm font-normal text-muted-foreground">
-                        — current
+                        {t.versionHistory.current}
                       </span>
                     )}
                   </CardTitle>
-                  <CardDescription>Saved {savedOn(version.editedAt)}</CardDescription>
+                  <CardDescription>{t.versionHistory.savedOn(savedOn(version.editedAt, locale))}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2">
                   {version.snapshot.title && (

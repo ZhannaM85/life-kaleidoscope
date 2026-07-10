@@ -1,5 +1,7 @@
 import { PlaceholderPage } from '@/shared/ui/PlaceholderPage'
+import { useLocaleStore } from '@/stores'
 
 export function SearchPage() {
-  return <PlaceholderPage title="Search" description="Epic 6 — Search." />
+  const t = useLocaleStore((s) => s.dictionary)
+  return <PlaceholderPage title={t.searchPage.title} description={t.placeholder.comingSoon} />
 }

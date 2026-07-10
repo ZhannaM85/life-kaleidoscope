@@ -3,3 +3,4 @@
 export { getRepositories, setRepositories } from './repositories'
 export { useDailyPromptStore } from './daily-prompt-store'
 export { useMemoriesStore } from './memories-store'
+export { useLocaleStore } from './locale-store'

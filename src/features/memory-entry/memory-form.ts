@@ -28,19 +28,28 @@ function optionalIntInRange(min: number, max: number, message: string) {
   }, message)
 }
 
+/** The validation messages, supplied by the active dictionary (#18). */
+export interface MemoryFormMessages {
+  storyRequired: string
+  ageRange: string
+  yearFourDigit: string
+}
+
 /**
  * Validation stays gentle on purpose — only the story is required, and the
  * two date guesses just need to be plausible numbers when given at all.
  */
-export const memoryFormSchema = z.object({
-  title: z.string(),
-  story: z.string().refine((value) => value.trim().length > 0, 'A memory needs at least a few words.'),
-  approxAge: optionalIntInRange(0, 120, 'If you give an age, make it a whole number between 0 and 120.'),
-  approxYear: optionalIntInRange(1000, 9999, 'If you give a year, make it a four-digit year.'),
-  people: z.string(),
-  places: z.string(),
-  tags: z.string(),
-})
+export function makeMemoryFormSchema(messages: MemoryFormMessages) {
+  return z.object({
+    title: z.string(),
+    story: z.string().refine((value) => value.trim().length > 0, messages.storyRequired),
+    approxAge: optionalIntInRange(0, 120, messages.ageRange),
+    approxYear: optionalIntInRange(1000, 9999, messages.yearFourDigit),
+    people: z.string(),
+    places: z.string(),
+    tags: z.string(),
+  })
+}
 
 /** Split "Mom, Aunt Vera" into trimmed names, dropping blanks and case-insensitive duplicates. */
 export function parseNameList(raw: string): string[] {

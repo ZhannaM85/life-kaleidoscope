@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import type { Prompt } from '@/domain/prompt'
 import type { Memory } from '@/domain/memory'
-import { getOrCreateTodaysPrompt, localDateKey } from '@/domain/prompt'
+import { getOrCreateTodaysPrompt, getWordPool, localDateKey } from '@/domain/prompt'
 import { createMemory } from '@/domain/memory'
 import { ensureUserProfile } from '@/domain/user'
 import { defaultGenerateId, nowIso } from '@/domain/shared'
 import { getRepositories } from './repositories'
+import { useLocaleStore } from './locale-store'
 
 interface DailyPromptState {
   prompt: Prompt | null
@@ -35,9 +36,13 @@ export const useDailyPromptStore = create<DailyPromptState>()((set, get) => ({
     const { memories, prompts } = getRepositories()
     set({ status: 'loading', error: null })
     try {
+      // The pool is read at creation time only — a prompt already issued
+      // today is returned as-is, so a language switch mid-day never changes
+      // the word already shown (#18).
       const prompt = await getOrCreateTodaysPrompt(prompts, {
         generateId: defaultGenerateId,
         now: nowIso,
+        wordPool: getWordPool(useLocaleStore.getState().locale),
       })
       // Collect memories across *all* of today's prompts, not just the
       // canonical one — tolerates duplicate same-day prompts from older
