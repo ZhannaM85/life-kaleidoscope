@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test)",
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npm run preview)",
+      "Bash(npm run test:watch)",
+      "Bash(npm run test:coverage)",
+      "Bash(npm run format)",
+      "Bash(npm run type-check)",
+      "Bash(npm install)",
+      "Bash(npx vitest *)",
+      "Bash(npx tsc *)",
+      "Bash(npx prettier *)",
+      "Bash(npx vite *)",
+      "PowerShell(npm test)",
+      "PowerShell(npm run dev)",
+      "PowerShell(npm run build)",
+      "PowerShell(npm run lint)",
+      "PowerShell(npm run preview)",
+      "PowerShell(npm run test:watch)",
+      "PowerShell(npm run test:coverage)",
+      "PowerShell(npm run format)",
+      "PowerShell(npm run type-check)",
+      "PowerShell(npm install)",
+      "PowerShell(npx vitest *)",
+      "PowerShell(npx tsc *)",
+      "PowerShell(npx prettier *)",
+      "PowerShell(npx vite *)",
+      "PowerShell(Get-Content*)",
+      "PowerShell(Get-ChildItem*)",
+      "PowerShell(Get-Process*)"
+    ]
+  }
+}
