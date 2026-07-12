@@ -1,6 +1,14 @@
 import type { EntityId, IsoDateString } from '@/domain/shared'
 
 /**
+ * How a memory feels, in the writer's own quiet word — optional everywhere,
+ * never rendered with color coding, emoji, or faces (brief §2 calm visual
+ * language). `bittersweet` is deliberate: decades-old memories are rarely
+ * purely happy or sad.
+ */
+export type Mood = 'happy' | 'bittersweet' | 'neutral' | 'sad'
+
+/**
  * One written memory, inspired by a daily prompt.
  *
  * Occurrence dates are deliberately approximate and optional (approxAge /
@@ -13,6 +21,7 @@ export interface Memory {
   story: string
   approxAge?: number
   approxYear?: number
+  mood?: Mood
   peopleIds: EntityId[]
   placeIds: EntityId[]
   tagIds: EntityId[]

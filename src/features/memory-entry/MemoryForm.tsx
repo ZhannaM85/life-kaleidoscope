@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
 import { cn } from '@/shared/lib/utils'
@@ -7,6 +7,7 @@ import { useLocaleStore } from '@/stores'
 import { Button, buttonVariants } from '@/shared/ui/button'
 import { TextField } from '@/shared/ui/text-field'
 import { Textarea } from '@/shared/ui/textarea'
+import { ChipGroup } from '@/shared/ui/chip-group'
 import { makeMemoryFormSchema, type MemoryFormValues } from './memory-form'
 
 interface MemoryFormProps {
@@ -34,9 +35,19 @@ export function MemoryForm({
 }: MemoryFormProps) {
   const t = useLocaleStore((s) => s.dictionary)
   const schema = useMemo(() => makeMemoryFormSchema(t.memoryForm), [t])
+  const moodOptions = useMemo(
+    () => [
+      { value: 'happy', label: t.mood.happy },
+      { value: 'bittersweet', label: t.mood.bittersweet },
+      { value: 'neutral', label: t.mood.neutral },
+      { value: 'sad', label: t.mood.sad },
+    ],
+    [t]
+  )
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<MemoryFormValues>({
     resolver: zodResolver(schema),
@@ -79,6 +90,19 @@ export function MemoryForm({
           {...register('approxYear')}
         />
       </div>
+      <Controller
+        control={control}
+        name="mood"
+        render={({ field }) => (
+          <ChipGroup
+            legend={t.mood.question}
+            options={moodOptions}
+            value={field.value === '' ? undefined : field.value}
+            onChange={(value) => field.onChange(value ?? '')}
+            disabled={saving}
+          />
+        )}
+      />
       <TextField
         label={t.common.people}
         hint={t.memoryForm.peopleHint}

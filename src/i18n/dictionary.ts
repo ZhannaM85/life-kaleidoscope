@@ -72,6 +72,13 @@ export interface Dictionary {
     ageRange: string
     yearFourDigit: string
   }
+  mood: {
+    question: string
+    happy: string
+    bittersweet: string
+    neutral: string
+    sad: string
+  }
   memoryDetail: {
     errorOpening: (error: string) => string
     untitled: string
@@ -79,6 +86,7 @@ export interface Dictionary {
     whenLabel: string
     aroundAge: (age: number) => string
     aroundYear: (year: number) => string
+    moodLabel: string
     versionHistory: string
     deleteWarning: string
     deleteThisMemory: string

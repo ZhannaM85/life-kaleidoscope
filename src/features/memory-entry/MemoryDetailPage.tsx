@@ -108,7 +108,11 @@ export function MemoryDetailPage() {
     memory.approxYear !== undefined ? t.memoryDetail.aroundYear(memory.approxYear) : null,
   ].filter((part): part is string => part !== null)
   const hasDetails =
-    when.length > 0 || peopleNames.length > 0 || placeNames.length > 0 || tagLabels.length > 0
+    when.length > 0 ||
+    memory.mood !== undefined ||
+    peopleNames.length > 0 ||
+    placeNames.length > 0 ||
+    tagLabels.length > 0
 
   return (
     <div className="flex flex-col gap-8">
@@ -135,6 +139,9 @@ export function MemoryDetailPage() {
       {hasDetails && (
         <dl className="m-0 flex flex-col gap-1.5 border-t border-border pt-4 font-sans text-sm text-muted-foreground">
           {when.length > 0 && <DetailRow label={t.memoryDetail.whenLabel} value={when.join(', ')} />}
+          {memory.mood !== undefined && (
+            <DetailRow label={t.memoryDetail.moodLabel} value={t.mood[memory.mood]} />
+          )}
           {peopleNames.length > 0 && <DetailRow label={t.common.people} value={peopleNames.join(', ')} />}
           {placeNames.length > 0 && <DetailRow label={t.common.places} value={placeNames.join(', ')} />}
           {tagLabels.length > 0 && <DetailRow label={t.common.tags} value={tagLabels.join(', ')} />}

@@ -7,6 +7,7 @@ import { Textarea } from './textarea'
 import { PhotoUpload } from './photo-upload'
 import { EmptyState } from './empty-state'
 import { PageHeader } from './page-header'
+import { ChipGroup } from './chip-group'
 
 describe('Button', () => {
   it('fires onClick and defaults to type="button"', async () => {
@@ -57,6 +58,31 @@ describe('Textarea', () => {
     const area = screen.getByLabelText('Your memory')
     await userEvent.type(area, 'The kitchen smelled of cinnamon.')
     expect(area).toHaveValue('The kitchen smelled of cinnamon.')
+  })
+})
+
+describe('ChipGroup', () => {
+  const options = [
+    { value: 'happy', label: 'happy' },
+    { value: 'sad', label: 'sad' },
+  ]
+
+  it('selects a chip on tap and marks it pressed', async () => {
+    const onChange = vi.fn()
+    render(<ChipGroup legend="How does this memory feel?" options={options} value={undefined} onChange={onChange} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'happy' }))
+    expect(onChange).toHaveBeenCalledWith('happy')
+  })
+
+  it('clears the selection when the selected chip is tapped again', async () => {
+    const onChange = vi.fn()
+    render(<ChipGroup legend="How does this memory feel?" options={options} value="happy" onChange={onChange} />)
+
+    const happyChip = screen.getByRole('button', { name: 'happy' })
+    expect(happyChip).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(happyChip)
+    expect(onChange).toHaveBeenCalledWith(undefined)
   })
 })
 

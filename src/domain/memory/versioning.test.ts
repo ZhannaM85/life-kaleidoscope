@@ -52,6 +52,18 @@ describe('createMemory', () => {
     expect(memory.approxAge).toBeUndefined()
     expect(memory.approxYear).toBeUndefined()
   })
+
+  it('leaves mood undefined when not provided, and carries it through when given', () => {
+    const { memory: withoutMood } = createMemory(draft, makeDeps())
+    expect(withoutMood.mood).toBeUndefined()
+
+    const { memory: withMood, version } = createMemory(
+      { ...draft, mood: 'bittersweet' },
+      makeDeps()
+    )
+    expect(withMood.mood).toBe('bittersweet')
+    expect(version.snapshot.mood).toBe('bittersweet')
+  })
 })
 
 describe('editMemory', () => {
@@ -108,5 +120,15 @@ describe('editMemory', () => {
     expect(v3.version.snapshot.story).toBe('Third telling.')
     expect(v3.version.snapshot.approxAge).toBe(8)
     expect(new Set([v1.version.id, v2.version.id, v3.version.id]).size).toBe(3)
+  })
+
+  it('can set and clear mood without touching other fields', () => {
+    const deps = makeDeps()
+    const created = createMemory({ ...draft, mood: 'happy' }, deps)
+    deps.tick()
+
+    const cleared = editMemory(created.memory, { mood: undefined }, deps)
+    expect(cleared.memory.mood).toBeUndefined()
+    expect(cleared.memory.story).toBe(created.memory.story)
   })
 })

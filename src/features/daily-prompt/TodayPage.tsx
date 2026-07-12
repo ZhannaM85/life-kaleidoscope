@@ -5,6 +5,7 @@ import { localeTag, type Locale } from '@/i18n'
 import { Button } from '@/shared/ui/button'
 import { Textarea } from '@/shared/ui/textarea'
 import { TextField } from '@/shared/ui/text-field'
+import { ChipGroup } from '@/shared/ui/chip-group'
 import { Card, CardContent } from '@/shared/ui/card'
 import { intInRangeError } from '@/features/memory-entry/memory-form'
 
@@ -23,17 +24,25 @@ export function TodayPage() {
     draft,
     draftApproxAge,
     draftApproxYear,
+    draftMood,
     status,
     error,
     load,
     setDraft,
     setDraftApproxAge,
     setDraftApproxYear,
+    setDraftMood,
     save,
   } = useDailyPromptStore()
   const t = useLocaleStore((s) => s.dictionary)
   const locale = useLocaleStore((s) => s.locale)
   const [showWhen, setShowWhen] = useState(() => Boolean(draftApproxAge || draftApproxYear))
+  const moodOptions = [
+    { value: 'happy', label: t.mood.happy },
+    { value: 'bittersweet', label: t.mood.bittersweet },
+    { value: 'neutral', label: t.mood.neutral },
+    { value: 'sad', label: t.mood.sad },
+  ]
 
   useEffect(() => {
     void load()
@@ -74,6 +83,14 @@ export function TodayPage() {
           onChange={(e) => setDraft(e.target.value)}
           disabled={status === 'saving'}
           className="min-h-48"
+        />
+
+        <ChipGroup
+          legend={t.mood.question}
+          options={moodOptions}
+          value={draftMood}
+          onChange={(value) => setDraftMood(value as typeof draftMood)}
+          disabled={status === 'saving'}
         />
 
         {showWhen ? (

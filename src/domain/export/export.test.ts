@@ -89,6 +89,7 @@ const first = createMemory(
     story: 'The red bicycle leaned against the fence all summer.',
     approxAge: 8,
     approxYear: 1993,
+    mood: 'happy',
     peopleIds: ['person-1'],
     placeIds: ['place-1'],
     tagIds: ['tag-1'],
@@ -183,12 +184,14 @@ describe('backupToMarkdown', () => {
     const markdown = backupToMarkdown(backup)
 
     expect(markdown).toContain('- When: around age 8, around 1993')
+    expect(markdown).toContain('- Mood: happy')
     expect(markdown).toContain('- People: Mom')
     expect(markdown).toContain('- Places: The old kitchen')
     expect(markdown).toContain('- Tags: childhood')
-    // The second memory has no links or dates — exactly one of each detail line.
+    // The second memory has no links, dates, or mood — exactly one of each detail line.
     expect(markdown.match(/- People:/g)).toHaveLength(1)
     expect(markdown.match(/- When:/g)).toHaveLength(1)
+    expect(markdown.match(/- Mood:/g)).toHaveLength(1)
   })
 })
 

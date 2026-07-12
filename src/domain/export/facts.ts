@@ -37,6 +37,7 @@ export function backupToFacts(backup: BackupFile): MemoryFacts[] {
         memory.approxYear !== undefined ? `around ${memory.approxYear}` : null,
       ].filter((part): part is string => part !== null)
       if (when.length > 0) details.push(`When: ${when.join(', ')}`)
+      if (memory.mood !== undefined) details.push(`Mood: ${memory.mood}`)
       pushNames(details, 'People', memory.peopleIds, personById)
       pushNames(details, 'Places', memory.placeIds, placeById)
       pushNames(details, 'Tags', memory.tagIds, tagById)

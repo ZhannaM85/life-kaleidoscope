@@ -71,6 +71,13 @@ export const en: Dictionary = {
     ageRange: 'If you give an age, make it a whole number between 0 and 120.',
     yearFourDigit: 'If you give a year, make it a four-digit year.',
   },
+  mood: {
+    question: 'How does this memory feel?',
+    happy: 'happy',
+    bittersweet: 'bittersweet',
+    neutral: 'neutral',
+    sad: 'sad',
+  },
   memoryDetail: {
     errorOpening: (error) => `Something went wrong opening this memory. ${error}`,
     untitled: 'A memory',
@@ -79,6 +86,7 @@ export const en: Dictionary = {
     whenLabel: 'When',
     aroundAge: (age) => `around age ${age}`,
     aroundYear: (year) => `around ${year}`,
+    moodLabel: 'Mood',
     versionHistory: 'Version history',
     deleteWarning: 'This removes the memory and its whole history.',
     deleteThisMemory: 'Delete this memory',

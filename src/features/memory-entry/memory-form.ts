@@ -4,6 +4,7 @@
 // reused (case-insensitively), new ones are created on the fly.
 import { z } from 'zod'
 import type { EntityId, GenerateId } from '@/domain/shared'
+import type { Mood } from '@/domain/memory'
 import type { PersonRepository } from '@/domain/person'
 import type { PlaceRepository } from '@/domain/place'
 import type { TagRepository } from '@/domain/tag'
@@ -14,6 +15,8 @@ export interface MemoryFormValues {
   story: string
   approxAge: string
   approxYear: string
+  /** One of `Mood`, or '' for "not set" — the chips only ever produce these. */
+  mood: string
   people: string
   places: string
   tags: string
@@ -61,6 +64,7 @@ export function makeMemoryFormSchema(messages: MemoryFormMessages) {
     story: z.string().refine((value) => value.trim().length > 0, messages.storyRequired),
     approxAge: optionalIntInRange(0, 120, messages.ageRange),
     approxYear: optionalIntInRange(1000, 9999, messages.yearFourDigit),
+    mood: z.string(),
     people: z.string(),
     places: z.string(),
     tags: z.string(),
@@ -87,6 +91,7 @@ export interface MemoryFormFields {
   story: string
   approxAge?: number
   approxYear?: number
+  mood?: Mood
   peopleNames: string[]
   placeNames: string[]
   tagLabels: string[]
@@ -104,6 +109,7 @@ export function memoryFieldsFromValues(values: MemoryFormValues): MemoryFormFiel
     story: values.story.trim(),
     approxAge: optionalNumber(values.approxAge),
     approxYear: optionalNumber(values.approxYear),
+    mood: values.mood === '' ? undefined : (values.mood as Mood),
     peopleNames: parseNameList(values.people),
     placeNames: parseNameList(values.places),
     tagLabels: parseNameList(values.tags),

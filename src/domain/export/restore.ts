@@ -16,6 +16,7 @@ const memorySnapshotSchema = z.object({
   story: z.string(),
   approxAge: z.number().optional(),
   approxYear: z.number().optional(),
+  mood: z.enum(['happy', 'bittersweet', 'neutral', 'sad']).optional(),
   peopleIds: z.array(entityIdSchema),
   placeIds: z.array(entityIdSchema),
   tagIds: z.array(entityIdSchema),

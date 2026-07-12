@@ -20,6 +20,7 @@ function values(overrides: Partial<MemoryFormValues> = {}): MemoryFormValues {
     story: 'The dacha smelled of raspberries.',
     approxAge: '',
     approxYear: '',
+    mood: '',
     people: '',
     places: '',
     tags: '',
@@ -57,6 +58,11 @@ describe('memoryFieldsFromValues', () => {
     expect(fields.approxAge).toBe(6)
     expect(fields.approxYear).toBeUndefined()
     expect(fields.peopleNames).toEqual([])
+  })
+
+  it('turns a blank mood into undefined and passes a set mood through', () => {
+    expect(memoryFieldsFromValues(values()).mood).toBeUndefined()
+    expect(memoryFieldsFromValues(values({ mood: 'bittersweet' })).mood).toBe('bittersweet')
   })
 })
 

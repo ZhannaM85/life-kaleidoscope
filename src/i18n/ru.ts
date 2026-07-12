@@ -72,6 +72,13 @@ export const ru: Dictionary = {
     ageRange: 'Если указываете возраст, пусть это будет целое число от 0 до 120.',
     yearFourDigit: 'Если указываете год, пусть это будут четыре цифры.',
   },
+  mood: {
+    question: 'Каким было это воспоминание?',
+    happy: 'светлое',
+    bittersweet: 'горько-сладкое',
+    neutral: 'спокойное',
+    sad: 'грустное',
+  },
   memoryDetail: {
     errorOpening: (error) => `Не получилось открыть это воспоминание. ${error}`,
     untitled: 'Воспоминание',
@@ -80,6 +87,7 @@ export const ru: Dictionary = {
     whenLabel: 'Когда',
     aroundAge: (age) => `примерно в ${age} ${pluralRu(age, { one: 'год', few: 'года', many: 'лет' })}`,
     aroundYear: (year) => `примерно в ${year} году`,
+    moodLabel: 'Настроение',
     versionHistory: 'История версий',
     deleteWarning: 'Это удалит воспоминание и всю его историю.',
     deleteThisMemory: 'Удалить это воспоминание',

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Prompt } from '@/domain/prompt'
-import type { Memory } from '@/domain/memory'
+import type { Memory, Mood } from '@/domain/memory'
 import { getOrCreateTodaysPrompt, getWordPool, localDateKey } from '@/domain/prompt'
 import { createMemory } from '@/domain/memory'
 import { ensureUserProfile } from '@/domain/user'
@@ -17,12 +17,15 @@ interface DailyPromptState {
   /** Optional, quiet "when was this, roughly?" guesses (#25) — raw strings, same shape as the full form. */
   draftApproxAge: string
   draftApproxYear: string
+  /** Optional mood chip (#26) — unset until tapped. */
+  draftMood: Mood | undefined
   status: 'idle' | 'loading' | 'ready' | 'saving' | 'error'
   error: string | null
   load: () => Promise<void>
   setDraft: (text: string) => void
   setDraftApproxAge: (text: string) => void
   setDraftApproxYear: (text: string) => void
+  setDraftMood: (mood: Mood | undefined) => void
   save: () => Promise<void>
 }
 
@@ -32,6 +35,7 @@ export const useDailyPromptStore = create<DailyPromptState>()((set, get) => ({
   draft: '',
   draftApproxAge: '',
   draftApproxYear: '',
+  draftMood: undefined,
   status: 'idle',
   error: null,
 
@@ -79,8 +83,12 @@ export const useDailyPromptStore = create<DailyPromptState>()((set, get) => ({
     set({ draftApproxYear: text })
   },
 
+  setDraftMood(mood) {
+    set({ draftMood: mood })
+  },
+
   async save() {
-    const { prompt, draft, draftApproxAge, draftApproxYear } = get()
+    const { prompt, draft, draftApproxAge, draftApproxYear, draftMood } = get()
     const story = draft.trim()
     if (!prompt || !story) return
     if (intInRangeError(draftApproxAge, 0, 120, '') || intInRangeError(draftApproxYear, 1000, 9999, ''))
@@ -96,6 +104,7 @@ export const useDailyPromptStore = create<DailyPromptState>()((set, get) => ({
           story,
           approxAge: optionalNumber(draftApproxAge),
           approxYear: optionalNumber(draftApproxYear),
+          mood: draftMood,
           authoredBy: profile.id,
         },
         { generateId: defaultGenerateId, now: nowIso }
@@ -106,6 +115,7 @@ export const useDailyPromptStore = create<DailyPromptState>()((set, get) => ({
         draft: '',
         draftApproxAge: '',
         draftApproxYear: '',
+        draftMood: undefined,
         status: 'ready',
       }))
     } catch (e) {

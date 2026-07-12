@@ -17,6 +17,7 @@ const created = createMemory(
     promptId: 'prompt-1',
     story: 'The red bicycle leaned against the fence all summer.',
     approxAge: 8,
+    mood: 'sad',
     peopleIds: ['person-1'],
     placeIds: ['place-1'],
     tagIds: ['tag-1'],

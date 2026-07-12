@@ -8,6 +8,7 @@ export interface MemoryDraft {
   story: string
   approxAge?: number
   approxYear?: number
+  mood?: Memory['mood']
   peopleIds?: string[]
   placeIds?: string[]
   tagIds?: string[]
@@ -25,6 +26,7 @@ export type MemoryEdit = Partial<
     | 'story'
     | 'approxAge'
     | 'approxYear'
+    | 'mood'
     | 'peopleIds'
     | 'placeIds'
     | 'tagIds'
@@ -64,6 +66,7 @@ export function createMemory(draft: MemoryDraft, deps: VersioningDeps): MemoryWi
     story: draft.story,
     approxAge: draft.approxAge,
     approxYear: draft.approxYear,
+    mood: draft.mood,
     peopleIds: draft.peopleIds ?? [],
     placeIds: draft.placeIds ?? [],
     tagIds: draft.tagIds ?? [],

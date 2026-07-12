@@ -23,6 +23,7 @@ beforeEach(() => {
     draft: '',
     draftApproxAge: '',
     draftApproxYear: '',
+    draftMood: undefined,
     status: 'idle',
     error: null,
   })
@@ -123,6 +124,53 @@ describe('vertical slice: prompt → write → save → memories list', () => {
       screen.getByText('If you give an age, make it a whole number between 0 and 120.')
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Keep this memory' })).toBeDisabled()
+  })
+
+  it('captures an optional mood chip, tap to select, tap again to clear (#26)', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <TodayPage />
+      </MemoryRouter>
+    )
+    await screen.findByRole('heading', { level: 1 })
+
+    const bittersweetChip = screen.getByRole('button', { name: 'bittersweet' })
+    expect(bittersweetChip).toHaveAttribute('aria-pressed', 'false')
+    await user.click(bittersweetChip)
+    expect(bittersweetChip).toHaveAttribute('aria-pressed', 'true')
+
+    await user.type(
+      screen.getByLabelText('A memory this word brings back'),
+      'Packing up the dacha at the end of summer.'
+    )
+    await user.click(screen.getByRole('button', { name: 'Keep this memory' }))
+
+    await waitFor(() => {
+      expect(useDailyPromptStore.getState().todaysMemories).toHaveLength(1)
+    })
+    expect(useDailyPromptStore.getState().todaysMemories[0].mood).toBe('bittersweet')
+    expect(useDailyPromptStore.getState().draftMood).toBeUndefined()
+  })
+
+  it('saves with no mood when nothing is tapped', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <TodayPage />
+      </MemoryRouter>
+    )
+    await screen.findByRole('heading', { level: 1 })
+    await user.type(
+      screen.getByLabelText('A memory this word brings back'),
+      'An ordinary afternoon, nothing more.'
+    )
+    await user.click(screen.getByRole('button', { name: 'Keep this memory' }))
+
+    await waitFor(() => {
+      expect(useDailyPromptStore.getState().todaysMemories).toHaveLength(1)
+    })
+    expect(useDailyPromptStore.getState().todaysMemories[0].mood).toBeUndefined()
   })
 
   it('shows the calm empty state when nothing has been written', async () => {
